@@ -4,12 +4,23 @@ MVP pour extraire automatiquement des paramètres méthodologiques d'articles PD
 
 Le pipeline produit:
 
+- un screening full paper inclusion/exclusion avant extraction;
+- un JSON de screening par article;
 - un JSON structuré par article et par question;
 - un CSV synthèse pour la revue;
 - une confiance finale;
 - les preuves textuelles utilisées;
 - un indicateur `review_required`;
 - un PDF surligné lorsque les citations peuvent être retrouvées dans le document.
+
+La phase amont applique la grille:
+
+- population: inclure les populations humaines saines ou non saines; exclure les études animales;
+- outcome: inclure cinématique/posture de l'épaule; exclure le membre supérieur sans épaule;
+- study design: inclure recherche prospective primaire; exclure revues, analyses secondaires/rétrospectives et proceedings;
+- langue: inclure les articles en anglais.
+
+L'extraction détaillée est lancée seulement si le screening final est `include` sans révision humaine requise. Les articles exclus ou incertains gardent un `*.screening.json`, une ligne dans `summary.csv`, et un PDF surligné des preuves de screening si le surlignage est activé.
 
 ## Installation
 
