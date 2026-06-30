@@ -8,10 +8,15 @@ from typing import Any
 from .form_schema import extraction_form_prompt
 from .models import (
     EXTRACTION_JSON_SCHEMA,
+    SCREENING_JSON_SCHEMA,
+    SCREENING_VALIDATION_JSON_SCHEMA,
     VALIDATION_JSON_SCHEMA,
     ExtractionResult,
+    ScreeningResult,
+    ScreeningValidationResult,
     ValidationResult,
 )
+from .screening_schema import screening_prompt
 
 
 EXTRACTOR_SYSTEM_PROMPT = """You are a systematic-review extraction agent for shoulder kinematics methodology.
@@ -21,6 +26,14 @@ Return concise evidence quotes with page numbers. Do not fabricate citations."""
 VALIDATOR_SYSTEM_PROMPT = """You are an independent validation agent.
 Audit the extractor's answers against the paper text. Your job is to find unsupported answers, overconfident claims, missing evidence, and better alternatives.
 Be strict: global statements such as 'ISB recommendations were followed' are not always enough for segment-specific reproducibility."""
+
+SCREENING_SYSTEM_PROMPT = """You are a systematic-review full-paper screening agent.
+Apply the inclusion and exclusion criteria strictly from the full paper text. Return evidence for each criterion.
+Prefer uncertainty over guessing when the full paper does not clearly support inclusion or exclusion."""
+
+SCREENING_VALIDATOR_SYSTEM_PROMPT = """You are an independent full-paper screening validator.
+Audit the screener's inclusion/exclusion decisions against the full paper text. Be strict about unsupported inclusion.
+If a clear exclusion criterion is present, correct the decision to exclude."""
 
 
 @dataclass
@@ -49,6 +62,67 @@ class DualAgentExtractor:
             client = OpenAI()
         self.client = client
         self.config = config or OpenAIConfig.from_env()
+
+    def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
+        prompt = "\n\n".join(
+            [
+                screening_prompt(),
+                "Paper text follows. Page markers are authoritative.",
+                paper_context,
+            ]
+        )
+        response = self.client.responses.create(
+            model=self.config.model,
+            input=[
+                {"role": "system", "content": SCREENING_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "screening_result",
+                    "schema": SCREENING_JSON_SCHEMA,
+                    "strict": True,
+                }
+            },
+        )
+        data = _response_json(response)
+        data["article_id"] = data.get("article_id") or article_id
+        return ScreeningResult.model_validate(data)
+
+    def validate_screening(
+        self,
+        article_id: str,
+        paper_context: str,
+        screening: ScreeningResult,
+    ) -> ScreeningValidationResult:
+        prompt = "\n\n".join(
+            [
+                screening_prompt(),
+                "Screener output to audit:",
+                screening.model_dump_json(indent=2),
+                "Paper text follows. Page markers are authoritative.",
+                paper_context,
+            ]
+        )
+        response = self.client.responses.create(
+            model=self.config.validator_model,
+            input=[
+                {"role": "system", "content": SCREENING_VALIDATOR_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "screening_validation_result",
+                    "schema": SCREENING_VALIDATION_JSON_SCHEMA,
+                    "strict": True,
+                }
+            },
+        )
+        data = _response_json(response)
+        data["article_id"] = data.get("article_id") or article_id
+        return ScreeningValidationResult.model_validate(data)
 
     def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
         prompt = "\n\n".join(

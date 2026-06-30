@@ -19,25 +19,53 @@ HIGHLIGHT_COLORS = {
 def write_highlighted_pdf(source_pdf: Path, result: ArticleResult, out_pdf: Path) -> int:
     highlights = 0
     with fitz.open(source_pdf) as doc:
+        if result.screening is not None:
+            for criterion in result.screening.criteria:
+                color = HIGHLIGHT_COLORS["review"] if criterion.review_required else HIGHLIGHT_COLORS["default"]
+                for evidence in criterion.evidence:
+                    highlights += _highlight_evidence(
+                        doc=doc,
+                        page_number=evidence.page,
+                        quote=evidence.quote,
+                        color=color,
+                        content=f"screening.{criterion.criterion_id}: {criterion.final_decision} "
+                        f"(confidence {criterion.final_confidence})",
+                    )
         for answer in result.answers:
             color = _color_for_item(answer.item_id, answer.review_required)
             for evidence in answer.evidence:
-                if not evidence.quote.strip() or evidence.page is None:
-                    continue
-                page_index = evidence.page - 1
-                if page_index < 0 or page_index >= len(doc):
-                    continue
-                page = doc[page_index]
-                matches = page.search_for(_trim_quote(evidence.quote))
-                for rect in matches[:3]:
-                    annot = page.add_highlight_annot(rect)
-                    annot.set_colors(stroke=color)
-                    annot.set_info(
-                        content=f"{answer.item_id}: {answer.final_answer} (confidence {answer.final_confidence})"
-                    )
-                    annot.update()
-                    highlights += 1
+                highlights += _highlight_evidence(
+                    doc=doc,
+                    page_number=evidence.page,
+                    quote=evidence.quote,
+                    color=color,
+                    content=f"{answer.item_id}: {answer.final_answer} (confidence {answer.final_confidence})",
+                )
         doc.save(out_pdf, garbage=4, deflate=True)
+    return highlights
+
+
+def _highlight_evidence(
+    doc: fitz.Document,
+    page_number: int | None,
+    quote: str,
+    color: tuple[float, float, float],
+    content: str,
+) -> int:
+    if not quote.strip() or page_number is None:
+        return 0
+    page_index = page_number - 1
+    if page_index < 0 or page_index >= len(doc):
+        return 0
+    page = doc[page_index]
+    matches = page.search_for(_trim_quote(quote))
+    highlights = 0
+    for rect in matches[:3]:
+        annot = page.add_highlight_annot(rect)
+        annot.set_colors(stroke=color)
+        annot.set_info(content=content)
+        annot.update()
+        highlights += 1
     return highlights
 
 

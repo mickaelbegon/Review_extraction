@@ -14,6 +14,9 @@ def write_csv_summary(results: list[ArticleResult], out_path: Path) -> None:
             fieldnames=[
                 "article_id",
                 "source_pdf",
+                "screening_decision",
+                "screening_confidence",
+                "screening_review_required",
                 "item_id",
                 "final_answer",
                 "final_confidence",
@@ -25,11 +28,31 @@ def write_csv_summary(results: list[ArticleResult], out_path: Path) -> None:
         )
         writer.writeheader()
         for result in results:
+            if not result.answers:
+                writer.writerow(
+                    {
+                        "article_id": result.article_id,
+                        "source_pdf": result.source_pdf,
+                        "screening_decision": result.screening.overall_decision if result.screening else "",
+                        "screening_confidence": result.screening.final_confidence if result.screening else "",
+                        "screening_review_required": result.screening.review_required if result.screening else "",
+                        "item_id": "",
+                        "final_answer": "",
+                        "final_confidence": "",
+                        "review_required": "",
+                        "validator_status": "",
+                        "evidence_pages": "",
+                        "evidence_quotes": "",
+                    }
+                )
             for answer in result.answers:
                 writer.writerow(
                     {
                         "article_id": result.article_id,
                         "source_pdf": result.source_pdf,
+                        "screening_decision": result.screening.overall_decision if result.screening else "",
+                        "screening_confidence": result.screening.final_confidence if result.screening else "",
+                        "screening_review_required": result.screening.review_required if result.screening else "",
                         "item_id": answer.item_id,
                         "final_answer": _stringify_answer(answer.final_answer),
                         "final_confidence": answer.final_confidence,

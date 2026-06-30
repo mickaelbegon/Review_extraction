@@ -12,7 +12,43 @@ class FakeResponses:
     def create(self, **kwargs):
         self.calls.append(kwargs)
         schema_name = kwargs["text"]["format"]["name"]
-        if schema_name == "extraction_result":
+        if schema_name == "screening_result":
+            payload = {
+                "article_id": "paper",
+                "overall_decision": "include",
+                "criteria": [
+                    {
+                        "criterion_id": "population",
+                        "decision": "include",
+                        "confidence": 0.9,
+                        "evidence": [
+                            {
+                                "page": 1,
+                                "quote": "Participants were adults.",
+                                "relevance": "Human population.",
+                            }
+                        ],
+                        "rationale_short": "Human participants are described.",
+                    }
+                ],
+            }
+        elif schema_name == "screening_validation_result":
+            payload = {
+                "article_id": "paper",
+                "overall_status": "agree",
+                "corrected_overall_decision": None,
+                "decisions": [
+                    {
+                        "criterion_id": "population",
+                        "status": "agree",
+                        "corrected_decision": None,
+                        "confidence": 0.9,
+                        "evidence": [],
+                        "critique": "Supported.",
+                    }
+                ],
+            }
+        elif schema_name == "extraction_result":
             payload = {
                 "article_id": "paper",
                 "answers": [
@@ -61,18 +97,24 @@ class OpenAIAgentTests(unittest.TestCase):
         client = FakeClient()
         agents = DualAgentExtractor(client=client, config=OpenAIConfig(model="extract-model", validator_model="validate-model"))
 
+        screening = agents.screen("paper", "[PAGE 1]\nParticipants were adults.")
+        screening_validation = agents.validate_screening("paper", "[PAGE 1]\nParticipants were adults.", screening)
         extraction = agents.extract("paper", "[PAGE 1]\nThorax markers were used.")
         validation = agents.validate("paper", "[PAGE 1]\nThorax markers were used.", extraction)
 
+        self.assertEqual(screening.overall_decision, "include")
+        self.assertEqual(screening_validation.overall_status, "agree")
         self.assertEqual(extraction.article_id, "paper")
         self.assertEqual(extraction.answers[0].item_id, "thorax_used")
         self.assertEqual(validation.decisions[0].status, "agree")
         self.assertEqual(client.responses.calls[0]["model"], "extract-model")
         self.assertEqual(client.responses.calls[1]["model"], "validate-model")
-        self.assertTrue(client.responses.calls[0]["text"]["format"]["strict"])
-        self.assertTrue(client.responses.calls[1]["text"]["format"]["strict"])
+        self.assertEqual(client.responses.calls[2]["model"], "extract-model")
+        self.assertEqual(client.responses.calls[3]["model"], "validate-model")
+        self.assertTrue(all(call["text"]["format"]["strict"] for call in client.responses.calls))
         self.assertIn("Paper text follows", client.responses.calls[0]["input"][1]["content"])
-        self.assertIn("Extractor output to audit", client.responses.calls[1]["input"][1]["content"])
+        self.assertIn("Screener output to audit", client.responses.calls[1]["input"][1]["content"])
+        self.assertIn("Extractor output to audit", client.responses.calls[3]["input"][1]["content"])
 
 
 if __name__ == "__main__":
