@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from .env import load_environment
-from .openai_agents import DualAgentExtractor, OpenAIConfig
+from .openai_agents import DualAgentExtractor, OpenAIConfig, OpenAIRequestError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,15 +30,24 @@ def main() -> None:
     if args.validator_model:
         config.validator_model = args.validator_model
 
-    agents = DualAgentExtractor(config=config)
-    results = process_many(
-        args.input,
-        args.out,
-        agents,
-        write_highlights=not args.no_highlight,
-        reuse_existing=not args.force,
-        progress=lambda message: print(message, flush=True),
-    )
+    try:
+        agents = DualAgentExtractor(config=config)
+        results = process_many(
+            args.input,
+            args.out,
+            agents,
+            write_highlights=not args.no_highlight,
+            reuse_existing=not args.force,
+            progress=lambda message: print(message, flush=True),
+        )
+    except KeyboardInterrupt:
+        print("\nInterrupted. Existing JSON outputs were kept; rerun the same command to resume.", file=sys.stderr)
+        raise SystemExit(130)
+    except OpenAIRequestError as exc:
+        print(f"\n{exc}", file=sys.stderr)
+        print("Fix the OpenAI account/key issue, then rerun the same command to resume from existing JSON.", file=sys.stderr)
+        raise SystemExit(2)
+
     review_required = sum(1 for result in results for answer in result.answers if answer.review_required)
     total = sum(len(result.answers) for result in results)
     print(f"Processed {len(results)} PDF(s).")

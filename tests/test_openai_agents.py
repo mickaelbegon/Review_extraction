@@ -2,7 +2,7 @@ import json
 import unittest
 from types import SimpleNamespace
 
-from review_extraction.openai_agents import DualAgentExtractor, OpenAIConfig
+from review_extraction.openai_agents import DualAgentExtractor, OpenAIConfig, OpenAIQuotaError
 
 
 class FakeResponses:
@@ -92,6 +92,23 @@ class FakeClient:
         self.responses = FakeResponses()
 
 
+class FakeQuotaError(Exception):
+    body = {
+        "message": "You exceeded your current quota, please check your plan and billing details.",
+        "code": "insufficient_quota",
+    }
+
+
+class QuotaResponses:
+    def create(self, **kwargs):
+        raise FakeQuotaError("quota")
+
+
+class QuotaClient:
+    def __init__(self) -> None:
+        self.responses = QuotaResponses()
+
+
 class OpenAIAgentTests(unittest.TestCase):
     def test_extract_and_validate_use_strict_json_schema(self) -> None:
         client = FakeClient()
@@ -115,6 +132,15 @@ class OpenAIAgentTests(unittest.TestCase):
         self.assertIn("Paper text follows", client.responses.calls[0]["input"][1]["content"])
         self.assertIn("Screener output to audit", client.responses.calls[1]["input"][1]["content"])
         self.assertIn("Extractor output to audit", client.responses.calls[3]["input"][1]["content"])
+
+    def test_insufficient_quota_raises_user_facing_error(self) -> None:
+        agents = DualAgentExtractor(client=QuotaClient(), config=OpenAIConfig())
+
+        with self.assertRaises(OpenAIQuotaError) as context:
+            agents.screen("paper", "[PAGE 1]\nText")
+
+        self.assertIn("quota exceeded", str(context.exception).lower())
+        self.assertIn("rerun the same command", str(context.exception).lower())
 
 
 if __name__ == "__main__":

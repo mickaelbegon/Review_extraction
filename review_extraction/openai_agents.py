@@ -36,6 +36,14 @@ Audit the screener's inclusion/exclusion decisions against the full paper text. 
 If a clear exclusion criterion is present, correct the decision to exclude."""
 
 
+class OpenAIRequestError(RuntimeError):
+    """User-facing OpenAI API failure."""
+
+
+class OpenAIQuotaError(OpenAIRequestError):
+    """OpenAI quota or billing failure."""
+
+
 @dataclass
 class OpenAIConfig:
     model: str = "gpt-5.5"
@@ -71,7 +79,8 @@ class DualAgentExtractor:
                 paper_context,
             ]
         )
-        response = self.client.responses.create(
+        response = _create_response(
+            self.client,
             model=self.config.model,
             input=[
                 {"role": "system", "content": SCREENING_SYSTEM_PROMPT},
@@ -105,7 +114,8 @@ class DualAgentExtractor:
                 paper_context,
             ]
         )
-        response = self.client.responses.create(
+        response = _create_response(
+            self.client,
             model=self.config.validator_model,
             input=[
                 {"role": "system", "content": SCREENING_VALIDATOR_SYSTEM_PROMPT},
@@ -132,7 +142,8 @@ class DualAgentExtractor:
                 paper_context,
             ]
         )
-        response = self.client.responses.create(
+        response = _create_response(
+            self.client,
             model=self.config.model,
             input=[
                 {"role": "system", "content": EXTRACTOR_SYSTEM_PROMPT},
@@ -161,7 +172,8 @@ class DualAgentExtractor:
                 paper_context,
             ]
         )
-        response = self.client.responses.create(
+        response = _create_response(
+            self.client,
             model=self.config.validator_model,
             input=[
                 {"role": "system", "content": VALIDATOR_SYSTEM_PROMPT},
@@ -179,6 +191,35 @@ class DualAgentExtractor:
         data = _response_json(response)
         data["article_id"] = data.get("article_id") or article_id
         return ValidationResult.model_validate(data)
+
+
+def _create_response(client: Any, **kwargs: Any) -> object:
+    try:
+        return client.responses.create(**kwargs)
+    except Exception as exc:
+        if _is_insufficient_quota_error(exc):
+            raise OpenAIQuotaError(
+                "OpenAI quota exceeded for the configured API key. "
+                "Check billing/usage or switch to a key with available quota, then rerun the same command. "
+                "Existing JSON outputs will be reused automatically."
+            ) from exc
+        if exc.__class__.__name__ == "RateLimitError":
+            raise OpenAIRequestError(
+                "OpenAI rate limit reached. Wait a bit, then rerun the same command. "
+                "Existing JSON outputs will be reused automatically."
+            ) from exc
+        raise
+
+
+def _is_insufficient_quota_error(exc: Exception) -> bool:
+    body = getattr(exc, "body", None)
+    code = None
+    message = str(exc)
+    if isinstance(body, dict):
+        code = body.get("code")
+        message = str(body.get("message") or message)
+    code = code or getattr(exc, "code", None)
+    return code == "insufficient_quota" or "exceeded your current quota" in message.lower()
 
 
 def _response_json(response: object) -> dict:
