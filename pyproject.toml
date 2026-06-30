@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "review-extraction"
+version = "0.1.0"
+description = "Assisted systematic-review parameter extraction with independent LLM validation."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.60.0",
+    "pydantic>=2.7.0",
+    "pymupdf>=1.24.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+api = [
+    "fastapi>=0.115.0",
+    "python-multipart>=0.0.9",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[project.scripts]
+review-extract = "review_extraction.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

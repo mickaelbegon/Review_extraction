@@ -1,0 +1,156 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+CHOICE_ASSESSMENT = [
+    "isb_explicit_method_aligned",
+    "isb_explicit_no_method",
+    "isb_explicit_method_inconsistent",
+    "isb_not_explicit_method_aligned",
+    "isb_not_followed_alternative_described",
+    "isb_not_followed_alternative_cited",
+    "no_method_or_reference",
+]
+
+JOINT_ASSESSMENT = [*CHOICE_ASSESSMENT, "not_assessed"]
+
+
+@dataclass(frozen=True)
+class ExtractionItem:
+    id: str
+    theme: str
+    question: str
+    allowed_answers: list[str]
+    guidance: str
+
+
+SEGMENTS = ["thorax", "clavicle", "scapula", "humerus"]
+
+JOINTS = {
+    "thorax_global": "Thorax relative to the global coordinate system",
+    "clavicle_thorax": "Clavicle relative to thorax",
+    "scapula_clavicle": "Scapula relative to clavicle",
+    "scapula_thorax": "Scapula relative to thorax",
+    "humerus_scapula": "Humerus relative to scapula",
+    "humerus_thorax": "Humerus relative to thorax",
+}
+
+EXPECTED_EULER = {
+    "thorax_global": "Z-X-Y",
+    "clavicle_thorax": "Y-X-Z",
+    "scapula_clavicle": "Y-X-Z",
+    "scapula_thorax": "Y-X-Z",
+    "humerus_scapula": "Y-X-Y",
+    "humerus_thorax": "Y-X-Y",
+}
+
+
+def build_extraction_items() -> list[ExtractionItem]:
+    items: list[ExtractionItem] = [
+        ExtractionItem(
+            id="measurement_methods",
+            theme="measurement_methods",
+            question="Which measurement methods are used in the study?",
+            allowed_answers=[
+                "skin_markers_3d_optical",
+                "skin_markers_2d_video",
+                "skin_magnetic_tracking",
+                "skin_imu",
+                "bone_pins_3d_optical",
+                "bone_pins_2d_video",
+                "bone_pins_magnetic_tracking",
+                "bone_pins_imu",
+                "sensorless_multiple_cameras",
+                "sensorless_single_camera",
+                "single_plane_fluoroscopy_ct_mri",
+                "biplane_fluoroscopy_ct_mri",
+                "dynamic_ct_4dct",
+                "dynamic_mri",
+                "ultrasound_ct_mri",
+                "other",
+                "not_reported",
+            ],
+            guidance="Select all methods supported by explicit evidence.",
+        )
+    ]
+
+    for segment in SEGMENTS:
+        items.extend(
+            [
+                ExtractionItem(
+                    id=f"{segment}_used",
+                    theme=f"segment.{segment}",
+                    question=f"Was the {segment} segment considered in the study?",
+                    allowed_answers=["yes", "no", "unclear"],
+                    guidance="Answer yes only if the segment coordinate system or segment kinematics are clearly used.",
+                ),
+                ExtractionItem(
+                    id=f"{segment}_axes_orientation",
+                    theme=f"segment.{segment}",
+                    question=f"How does the study define {segment} axes orientation relative to ISB recommendations?",
+                    allowed_answers=CHOICE_ASSESSMENT,
+                    guidance="Distinguish a global claim that ISB was followed from a reproducible segment-specific method.",
+                ),
+                ExtractionItem(
+                    id=f"{segment}_axes_construction",
+                    theme=f"segment.{segment}",
+                    question=f"How does the study construct the {segment} coordinate system axes relative to ISB recommendations?",
+                    allowed_answers=CHOICE_ASSESSMENT,
+                    guidance="Check landmarks, cross-products, and anatomical/geometrical definitions. Ignore obvious typos if intent is clear.",
+                ),
+                ExtractionItem(
+                    id=f"{segment}_scs_origin",
+                    theme=f"segment.{segment}",
+                    question=f"How does the study define the {segment} SCS origin relative to ISB recommendations?",
+                    allowed_answers=CHOICE_ASSESSMENT,
+                    guidance="Look for the anatomical origin and whether it matches the ISB origin for this segment.",
+                ),
+            ]
+        )
+
+    for joint_id, label in JOINTS.items():
+        items.extend(
+            [
+                ExtractionItem(
+                    id=f"{joint_id}_reported",
+                    theme=f"joint.{joint_id}",
+                    question=f"Are joint kinematics reported for {label}?",
+                    allowed_answers=["yes", "no", "unclear"],
+                    guidance="Answer yes only if this joint relationship is considered or reported.",
+                ),
+                ExtractionItem(
+                    id=f"{joint_id}_rotations",
+                    theme=f"joint.{joint_id}",
+                    question=f"How are rotations computed for {label} relative to ISB recommendations?",
+                    allowed_answers=JOINT_ASSESSMENT,
+                    guidance=f"The ISB Euler sequence for this joint is {EXPECTED_EULER[joint_id]}. Verify the reported sequence or alternative method.",
+                ),
+                ExtractionItem(
+                    id=f"{joint_id}_translations",
+                    theme=f"joint.{joint_id}",
+                    question=f"How are translations computed for {label} relative to ISB recommendations?",
+                    allowed_answers=JOINT_ASSESSMENT,
+                    guidance="Check whether translations are reported, in which coordinate system, or not assessed.",
+                ),
+            ]
+        )
+
+    return items
+
+
+EXTRACTION_ITEMS = build_extraction_items()
+
+
+def extraction_form_prompt() -> str:
+    lines = [
+        "Use this systematic-review extraction form.",
+        "Return one answer per item. Use only allowed answer identifiers.",
+        "If evidence is missing or ambiguous, prefer 'unclear', 'no_method_or_reference', or 'not_assessed' over guessing.",
+        "",
+    ]
+    for item in EXTRACTION_ITEMS:
+        lines.append(f"- {item.id}: {item.question}")
+        lines.append(f"  Allowed answers: {', '.join(item.allowed_answers)}")
+        lines.append(f"  Guidance: {item.guidance}")
+    return "\n".join(lines)
