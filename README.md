@@ -45,6 +45,14 @@ review-extract .\pdfs --out .\outputs --no-highlight
 review-extract .\pdfs --out .\outputs --model gpt-5.5 --validator-model gpt-5.5
 ```
 
+## Tests
+
+Les tests unitaires utilisent `unittest`, donc ils peuvent tourner sans `pytest`:
+
+```powershell
+python -B -m unittest discover -s tests -v
+```
+
 ## API locale
 
 ```powershell
