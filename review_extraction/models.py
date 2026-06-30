@@ -5,6 +5,27 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, confloat
 
 
+def openai_strict_schema(schema: dict) -> dict:
+    """Normalize a Pydantic schema for OpenAI strict structured outputs."""
+    normalized = dict(schema)
+    _require_all_object_properties(normalized)
+    return normalized
+
+
+def _require_all_object_properties(node: object) -> None:
+    if isinstance(node, dict):
+        node.pop("default", None)
+        properties = node.get("properties")
+        if isinstance(properties, dict):
+            node["required"] = list(properties.keys())
+            node["additionalProperties"] = False
+        for value in node.values():
+            _require_all_object_properties(value)
+    elif isinstance(node, list):
+        for value in node:
+            _require_all_object_properties(value)
+
+
 class Evidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -143,7 +164,7 @@ class ArticleResult(BaseModel):
     answers: list[FinalAnswer]
 
 
-SCREENING_JSON_SCHEMA = ScreeningResult.model_json_schema()
-SCREENING_VALIDATION_JSON_SCHEMA = ScreeningValidationResult.model_json_schema()
-EXTRACTION_JSON_SCHEMA = ExtractionResult.model_json_schema()
-VALIDATION_JSON_SCHEMA = ValidationResult.model_json_schema()
+SCREENING_JSON_SCHEMA = openai_strict_schema(ScreeningResult.model_json_schema())
+SCREENING_VALIDATION_JSON_SCHEMA = openai_strict_schema(ScreeningValidationResult.model_json_schema())
+EXTRACTION_JSON_SCHEMA = openai_strict_schema(ExtractionResult.model_json_schema())
+VALIDATION_JSON_SCHEMA = openai_strict_schema(ValidationResult.model_json_schema())
