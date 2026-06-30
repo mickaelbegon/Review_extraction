@@ -28,6 +28,7 @@ api = [
 
 [project.scripts]
 review-extract = "review_extraction.cli:main"
+review-model-benchmark = "review_extraction.benchmark_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["review_extraction*"]

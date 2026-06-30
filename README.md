@@ -129,6 +129,33 @@ Pour forcer une nouvelle analyse OpenAI et ignorer les JSON existants:
 review-extract .\pdf_input --out .\outputs --force
 ```
 
+## Benchmark de modeles
+
+Les JSON actuels dans `outputs` peuvent servir de reference 5.5 pour comparer des modeles candidats:
+
+```powershell
+review-model-benchmark .\pdf_input --reference-out .\outputs --out .\benchmark_outputs --models gpt-5.4 gpt-5.4-mini
+```
+
+Pour tester d'abord sur quelques articles:
+
+```powershell
+review-model-benchmark .\pdf_input --reference-out .\outputs --out .\benchmark_outputs --models gpt-5.4 gpt-5.4-mini --limit 3
+```
+
+Les resultats sont ecrits dans:
+
+- `benchmark_outputs\benchmark_summary.csv`
+- `benchmark_outputs\benchmark_articles.csv`
+- `benchmark_outputs\benchmark_disagreements.csv`
+- `benchmark_outputs\benchmark.xlsx`
+
+Si les sorties candidates existent deja, elles sont reutilisees. Pour comparer sans aucun appel OpenAI:
+
+```powershell
+review-model-benchmark .\pdf_input --reference-out .\outputs --out .\benchmark_outputs --models gpt-5.4 gpt-5.4-mini --compare-only
+```
+
 ## Tests
 
 Les tests unitaires utilisent `unittest`, donc ils peuvent tourner sans `pytest`:
