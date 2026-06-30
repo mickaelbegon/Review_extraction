@@ -3,9 +3,20 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
-from review_extraction.models import ArticleResult
+from review_extraction.models import (
+    ArticleResult,
+    Evidence,
+    ExtractedAnswer,
+    ExtractionResult,
+    ScreeningCriterionAnswer,
+    ScreeningResult,
+    ScreeningValidationDecision,
+    ScreeningValidationResult,
+    ValidationDecision,
+    ValidationResult,
+)
 from review_extraction.pipeline import process_many, process_pdf
 
 
@@ -21,6 +32,97 @@ class ExplodingAgents:
 
     def validate(self, *args, **kwargs):
         raise AssertionError("AI validation should not be called when cached JSON exists.")
+
+
+class RecordingAgents:
+    def __init__(self) -> None:
+        self.screen_contexts: list[str] = []
+        self.screen_validation_contexts: list[str] = []
+        self.extraction_contexts: list[str] = []
+        self.validation_contexts: list[str] = []
+
+    def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
+        self.screen_contexts.append(paper_context)
+        return ScreeningResult(
+            article_id=article_id,
+            overall_decision="include",
+            criteria=[
+                ScreeningCriterionAnswer(
+                    criterion_id="population",
+                    decision="include",
+                    confidence=0.9,
+                    evidence=[
+                        Evidence(
+                            page=1,
+                            quote="Healthy human participants",
+                            relevance="Supports human population inclusion.",
+                        )
+                    ],
+                    rationale_short="Human participants.",
+                )
+            ],
+        )
+
+    def validate_screening(
+        self,
+        article_id: str,
+        paper_context: str,
+        screening: ScreeningResult,
+    ) -> ScreeningValidationResult:
+        self.screen_validation_contexts.append(paper_context)
+        return ScreeningValidationResult(
+            article_id=article_id,
+            overall_status="agree",
+            corrected_overall_decision=None,
+            decisions=[
+                ScreeningValidationDecision(
+                    criterion_id="population",
+                    status="agree",
+                    corrected_decision=None,
+                    confidence=0.9,
+                    evidence=[],
+                    critique="Supported.",
+                )
+            ],
+        )
+
+    def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
+        self.extraction_contexts.append(paper_context)
+        return ExtractionResult(
+            article_id=article_id,
+            answers=[
+                ExtractedAnswer(
+                    item_id="thorax_used",
+                    answer="yes",
+                    confidence=0.8,
+                    evidence=[
+                        Evidence(
+                            page=2,
+                            quote="Thorax and humerus coordinate systems",
+                            relevance="Shows thorax segment use.",
+                        )
+                    ],
+                    rationale_short="Thorax coordinate system reported.",
+                    needs_human_review=False,
+                )
+            ],
+        )
+
+    def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult) -> ValidationResult:
+        self.validation_contexts.append(paper_context)
+        return ValidationResult(
+            article_id=article_id,
+            decisions=[
+                ValidationDecision(
+                    item_id="thorax_used",
+                    status="agree",
+                    corrected_answer=None,
+                    confidence=0.9,
+                    evidence=[],
+                    critique="Supported.",
+                )
+            ],
+        )
 
 
 class PipelineTests(unittest.TestCase):
@@ -108,6 +210,40 @@ class PipelineTests(unittest.TestCase):
                     sys.modules.pop("review_extraction.pdf_ingest", None)
                 else:
                     sys.modules["review_extraction.pdf_ingest"] = original_pdf_ingest
+
+    def test_process_pdf_uses_targeted_contexts_for_ai_calls(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_path = root / "paper.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4\n")
+            out_dir = root / "outputs"
+            pages = [
+                SimpleNamespace(page=1, text="Abstract. Healthy human participants completed shoulder tasks."),
+                SimpleNamespace(page=2, text="Methods. Thorax and humerus coordinate systems used marker clusters."),
+                SimpleNamespace(page=3, text="Unrelated filler. " * 500),
+            ]
+            fake_pdf_ingest = ModuleType("review_extraction.pdf_ingest")
+            fake_pdf_ingest.extract_pdf_text = lambda path: pages
+            original_pdf_ingest = sys.modules.get("review_extraction.pdf_ingest")
+            sys.modules["review_extraction.pdf_ingest"] = fake_pdf_ingest
+            agents = RecordingAgents()
+
+            try:
+                result = process_pdf(pdf_path, out_dir, agents=agents, write_highlights=False)
+            finally:
+                if original_pdf_ingest is None:
+                    sys.modules.pop("review_extraction.pdf_ingest", None)
+                else:
+                    sys.modules["review_extraction.pdf_ingest"] = original_pdf_ingest
+
+            self.assertEqual(result.article_id, "paper")
+            self.assertEqual(len(agents.screen_contexts), 1)
+            self.assertEqual(len(agents.extraction_contexts), 1)
+            self.assertIn("TARGETED FULL-PAPER SCREENING CONTEXT", agents.screen_contexts[0])
+            self.assertIn("TARGETED METHODOLOGY EXTRACTION CONTEXT", agents.extraction_contexts[0])
+            self.assertIn("TARGETED METHODOLOGY EXTRACTION CONTEXT", agents.validation_contexts[0])
+            self.assertGreaterEqual(len(agents.screen_validation_contexts[0]), len(agents.screen_contexts[0]))
+            self.assertGreaterEqual(len(agents.validation_contexts[0]), len(agents.extraction_contexts[0]))
 
 
 if __name__ == "__main__":

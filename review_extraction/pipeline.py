@@ -38,25 +38,40 @@ def process_pdf(
         return result
 
     _emit(progress, f"{prefix}extract PDF text")
-    from .pdf_ingest import extract_pdf_text, pages_to_prompt_context
+    from .pdf_ingest import extract_pdf_text
+    from .targeted_context import build_extraction_context, build_full_context, build_screening_context
 
     pages = extract_pdf_text(pdf_path)
-    context = pages_to_prompt_context(pages)
+    full_context = build_full_context(pages)
+    screening_context = build_screening_context(pages)
+    screening_validation_context = build_screening_context(pages, max_chars=50_000, target_fraction=0.80)
+    _emit(progress, f"{prefix}target screening context: {_context_report(screening_context)}")
 
     if reuse_existing and screening_path.exists():
         _emit(progress, f"{prefix}reuse existing screening JSON: {screening_path.name}")
         final_screening = FinalScreeningResult.model_validate_json(screening_path.read_text(encoding="utf-8"))
     else:
-        _emit(progress, f"{prefix}screen full paper")
-        screening = agents.screen(article_id=article_id, paper_context=context)
-        _emit(progress, f"{prefix}validate screening")
+        _emit(progress, f"{prefix}screen targeted full paper")
+        screening = agents.screen(article_id=article_id, paper_context=screening_context.text)
+        _emit(progress, f"{prefix}validate screening with broader targeted context")
         screening_validation = agents.validate_screening(
             article_id=article_id,
-            paper_context=context,
+            paper_context=screening_validation_context.text,
             screening=screening,
         )
         _emit(progress, f"{prefix}reconcile screening")
         final_screening = reconcile_screening(screening=screening, validation=screening_validation)
+        if _screening_needs_full_context_fallback(final_screening, screening_context, full_context):
+            _emit(progress, f"{prefix}screening uncertain: retry with full PDF context")
+            screening = agents.screen(article_id=article_id, paper_context=full_context.text)
+            _emit(progress, f"{prefix}validate screening with full PDF context")
+            screening_validation = agents.validate_screening(
+                article_id=article_id,
+                paper_context=full_context.text,
+                screening=screening,
+            )
+            _emit(progress, f"{prefix}reconcile full-context screening")
+            final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         screening_path.write_text(final_screening.model_dump_json(indent=2), encoding="utf-8")
 
     if not final_screening.extraction_allowed:
@@ -78,10 +93,13 @@ def process_pdf(
         _emit(progress, f"{prefix}done")
         return result
 
-    _emit(progress, f"{prefix}extract methodological parameters")
-    extraction = agents.extract(article_id=article_id, paper_context=context)
-    _emit(progress, f"{prefix}validate methodological parameters")
-    validation = agents.validate(article_id=article_id, paper_context=context, extraction=extraction)
+    extraction_context = build_extraction_context(pages)
+    extraction_validation_context = build_extraction_context(pages, max_chars=70_000, target_fraction=0.90)
+    _emit(progress, f"{prefix}target extraction context: {_context_report(extraction_context)}")
+    _emit(progress, f"{prefix}extract methodological parameters from targeted context")
+    extraction = agents.extract(article_id=article_id, paper_context=extraction_context.text)
+    _emit(progress, f"{prefix}validate methodological parameters with broader targeted context")
+    validation = agents.validate(article_id=article_id, paper_context=extraction_validation_context.text, extraction=extraction)
     _emit(progress, f"{prefix}reconcile methodological parameters")
     result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     result.screening = final_screening
@@ -151,3 +169,26 @@ def _progress_prefix(current: int | None, total: int | None, pdf_path: Path) -> 
 def _emit(progress: Callable[[str], None] | None, message: str) -> None:
     if progress is not None:
         progress(message)
+
+
+def _context_report(context: object) -> str:
+    selected_chars = getattr(context, "selected_chars", 0)
+    full_chars = getattr(context, "full_chars", 0)
+    selected_pages = getattr(context, "selected_pages", [])
+    percent = (selected_chars / full_chars * 100) if full_chars else 0
+    pages = ", ".join(str(page) for page in selected_pages[:12])
+    if len(selected_pages) > 12:
+        pages += ", ..."
+    return f"{selected_chars}/{full_chars} chars ({percent:.0f}%), pages {pages or 'none'}"
+
+
+def _screening_needs_full_context_fallback(
+    final_screening: FinalScreeningResult,
+    targeted_context: object,
+    full_context: object,
+) -> bool:
+    targeted_chars = getattr(targeted_context, "selected_chars", 0)
+    full_chars = getattr(full_context, "selected_chars", 0)
+    if full_chars <= targeted_chars:
+        return False
+    return final_screening.overall_decision == "uncertain" or final_screening.review_required

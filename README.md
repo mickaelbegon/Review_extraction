@@ -5,6 +5,7 @@ MVP pour extraire automatiquement des paramètres méthodologiques d'articles PD
 Le pipeline produit:
 
 - un screening full paper inclusion/exclusion avant extraction;
+- une lecture ciblee des passages utiles pour reduire les tokens envoyes a l'API;
 - un JSON de screening par article;
 - un fichier Excel `summary.xlsx` avec feuilles `Summary`, `Screening`, `Extraction` et `Review required`;
 - un JSON structuré par article et par question;
@@ -22,6 +23,23 @@ La phase amont applique la grille:
 - langue: inclure les articles en anglais.
 
 L'extraction détaillée est lancée seulement si le screening final est `include` sans révision humaine requise. Les articles exclus ou incertains gardent un `*.screening.json`, une ligne dans `summary.csv`, et un PDF surligné des preuves de screening si le surlignage est activé.
+
+## Lecture ciblee pour reduire les tokens
+
+Avant chaque appel OpenAI, le pipeline extrait le texte par page puis construit un contexte cible:
+
+- screening: pages d'abstract/methodes et passages contenant population, outcome, study design, shoulder, human/animal, review/proceedings;
+- extraction: passages contenant methodes, instrumentation, marqueurs/capteurs, segments thorax/clavicle/scapula/humerus, coordinate systems, ISB, Euler sequences, translations/rotations;
+- validation: le second agent reste independant et recoit un contexte cible plus large que le premier agent.
+
+Si le screening cible reste `uncertain` ou demande `review_required`, le pipeline relance uniquement le screening avec le contexte complet du PDF. Cela garde une securite pour les cas difficiles sans refaire une lecture complete sur les articles simples.
+
+La console affiche le volume envoye:
+
+```text
+[1/12] article.pdf: target screening context: 18000/52000 chars (35%), pages 1, 2, 4, 5
+[1/12] article.pdf: target extraction context: 29000/52000 chars (56%), pages 1, 3, 4, 5, 6
+```
 
 ## Installation
 
