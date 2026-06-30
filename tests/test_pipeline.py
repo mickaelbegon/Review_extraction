@@ -14,6 +14,7 @@ from review_extraction.models import (
     ScreeningResult,
     ScreeningValidationDecision,
     ScreeningValidationResult,
+    TokenUsage,
     ValidationDecision,
     ValidationResult,
 )
@@ -40,9 +41,13 @@ class RecordingAgents:
         self.screen_validation_contexts: list[str] = []
         self.extraction_contexts: list[str] = []
         self.validation_contexts: list[str] = []
+        self.usage_events: list[TokenUsage] = []
 
     def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
         self.screen_contexts.append(paper_context)
+        self.usage_events.append(
+            TokenUsage(step="screening", model="model", input_tokens=100, output_tokens=10, total_tokens=110)
+        )
         return ScreeningResult(
             article_id=article_id,
             overall_decision="include",
@@ -70,6 +75,9 @@ class RecordingAgents:
         screening: ScreeningResult,
     ) -> ScreeningValidationResult:
         self.screen_validation_contexts.append(paper_context)
+        self.usage_events.append(
+            TokenUsage(step="screening_validation", model="validator", input_tokens=120, output_tokens=12, total_tokens=132)
+        )
         return ScreeningValidationResult(
             article_id=article_id,
             overall_status="agree",
@@ -88,6 +96,9 @@ class RecordingAgents:
 
     def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
         self.extraction_contexts.append(paper_context)
+        self.usage_events.append(
+            TokenUsage(step="extraction", model="model", input_tokens=200, output_tokens=20, total_tokens=220)
+        )
         return ExtractionResult(
             article_id=article_id,
             answers=[
@@ -110,6 +121,9 @@ class RecordingAgents:
 
     def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult) -> ValidationResult:
         self.validation_contexts.append(paper_context)
+        self.usage_events.append(
+            TokenUsage(step="extraction_validation", model="validator", input_tokens=240, output_tokens=24, total_tokens=264)
+        )
         return ValidationResult(
             article_id=article_id,
             decisions=[
@@ -244,6 +258,8 @@ class PipelineTests(unittest.TestCase):
             self.assertIn("TARGETED METHODOLOGY EXTRACTION CONTEXT", agents.validation_contexts[0])
             self.assertGreaterEqual(len(agents.screen_validation_contexts[0]), len(agents.screen_contexts[0]))
             self.assertGreaterEqual(len(agents.validation_contexts[0]), len(agents.extraction_contexts[0]))
+            self.assertEqual([usage.step for usage in result.usage], ["screening", "screening_validation", "extraction", "extraction_validation"])
+            self.assertEqual(sum(usage.total_tokens for usage in result.usage), 726)
 
 
 if __name__ == "__main__":

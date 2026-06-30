@@ -41,6 +41,31 @@ La console affiche le volume envoye:
 [1/12] article.pdf: target extraction context: 29000/52000 chars (56%), pages 1, 3, 4, 5, 6
 ```
 
+## Suivi tokens et couts
+
+Chaque reponse OpenAI contient normalement un compteur `usage`. Le pipeline l'enregistre dans le JSON final de l'article et l'affiche dans la console:
+
+```text
+[1/12] article.pdf: usage screening: model=gpt-5.5, input=18432, output=912, total=19344, cost=$0.119520
+[1/12] article.pdf: article usage: input=62100, output=8420, total=70520, cost=$0.587300
+```
+
+Les exports ajoutent:
+
+- `summary.csv`: colonnes `usage_input_tokens`, `usage_output_tokens`, `usage_total_tokens`, `usage_estimated_cost_usd`;
+- `summary.xlsx`: feuille `Usage` avec une ligne par etape (`screening`, `screening_validation`, `extraction`, `extraction_validation`).
+
+Pour calculer les couts, ajoute les tarifs actuels du modele dans `.env` en USD par 1M tokens:
+
+```text
+OPENAI_INPUT_COST_PER_1M=
+OPENAI_OUTPUT_COST_PER_1M=
+OPENAI_VALIDATOR_INPUT_COST_PER_1M=
+OPENAI_VALIDATOR_OUTPUT_COST_PER_1M=
+```
+
+Si ces variables sont vides, le pipeline rapporte les tokens seulement.
+
 ## Installation
 
 ```powershell

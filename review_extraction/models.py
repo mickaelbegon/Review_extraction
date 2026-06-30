@@ -112,6 +112,19 @@ class ValidationResult(BaseModel):
     decisions: list[ValidationDecision]
 
 
+class TokenUsage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    step: str
+    model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    input_cost_per_million: float | None = None
+    output_cost_per_million: float | None = None
+    estimated_cost_usd: float | None = None
+
+
 class FinalAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -162,6 +175,7 @@ class ArticleResult(BaseModel):
     source_pdf: str
     screening: FinalScreeningResult | None = None
     answers: list[FinalAnswer]
+    usage: list[TokenUsage] = Field(default_factory=list)
 
 
 SCREENING_JSON_SCHEMA = openai_strict_schema(ScreeningResult.model_json_schema())

@@ -19,6 +19,10 @@ SUMMARY_COLUMNS = [
     "validator_status",
     "evidence_pages",
     "evidence_quotes",
+    "usage_input_tokens",
+    "usage_output_tokens",
+    "usage_total_tokens",
+    "usage_estimated_cost_usd",
 ]
 
 SCREENING_COLUMNS = [
@@ -31,6 +35,19 @@ SCREENING_COLUMNS = [
     "validator_status",
     "evidence_pages",
     "evidence_quotes",
+]
+
+USAGE_COLUMNS = [
+    "article_id",
+    "source_pdf",
+    "step",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "input_cost_per_million",
+    "output_cost_per_million",
+    "estimated_cost_usd",
 ]
 
 
@@ -59,6 +76,7 @@ def write_xlsx_summary(results: list[ArticleResult], out_path: Path) -> None:
         ("Screening", SCREENING_COLUMNS, screening_rows(results)),
         ("Extraction", SUMMARY_COLUMNS, extraction_rows(results)),
         ("Review required", SUMMARY_COLUMNS, review_required_rows(results)),
+        ("Usage", USAGE_COLUMNS, usage_rows(results)),
     ]
 
     for sheet_name, columns, rows in sheets:
@@ -125,7 +143,29 @@ def review_required_rows(results: list[ArticleResult]) -> list[dict[str, Any]]:
     ]
 
 
+def usage_rows(results: list[ArticleResult]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for result in results:
+        for usage in result.usage:
+            rows.append(
+                {
+                    "article_id": result.article_id,
+                    "source_pdf": result.source_pdf,
+                    "step": usage.step,
+                    "model": usage.model,
+                    "input_tokens": usage.input_tokens,
+                    "output_tokens": usage.output_tokens,
+                    "total_tokens": usage.total_tokens,
+                    "input_cost_per_million": usage.input_cost_per_million or "",
+                    "output_cost_per_million": usage.output_cost_per_million or "",
+                    "estimated_cost_usd": usage.estimated_cost_usd if usage.estimated_cost_usd is not None else "",
+                }
+            )
+    return rows
+
+
 def _summary_base_row(result: ArticleResult) -> dict[str, Any]:
+    usage = _usage_totals(result)
     return {
         "article_id": result.article_id,
         "source_pdf": result.source_pdf,
@@ -139,6 +179,10 @@ def _summary_base_row(result: ArticleResult) -> dict[str, Any]:
         "validator_status": "",
         "evidence_pages": "",
         "evidence_quotes": "",
+        "usage_input_tokens": usage["input_tokens"],
+        "usage_output_tokens": usage["output_tokens"],
+        "usage_total_tokens": usage["total_tokens"],
+        "usage_estimated_cost_usd": usage["estimated_cost_usd"],
     }
 
 
@@ -177,6 +221,16 @@ def _style_sheet(sheet: Any, columns: list[str], get_column_letter: Any, Font: A
         "validator_status": 18,
         "evidence_pages": 16,
         "evidence_quotes": 80,
+        "usage_input_tokens": 18,
+        "usage_output_tokens": 18,
+        "usage_total_tokens": 18,
+        "usage_estimated_cost_usd": 22,
+        "input_tokens": 16,
+        "output_tokens": 16,
+        "total_tokens": 16,
+        "input_cost_per_million": 22,
+        "output_cost_per_million": 22,
+        "estimated_cost_usd": 18,
     }
 
     for index, column in enumerate(columns, start=1):
@@ -186,6 +240,8 @@ def _style_sheet(sheet: Any, columns: list[str], get_column_letter: Any, Font: A
             cell.alignment = Alignment(vertical="top", wrap_text=column in {"source_pdf", "final_answer", "evidence_quotes"})
             if column.endswith("confidence") and isinstance(cell.value, (int, float)):
                 cell.number_format = "0.00"
+            if column.endswith("cost_usd") and isinstance(cell.value, (int, float)):
+                cell.number_format = "$0.000000"
 
     header_index = {cell.value: idx for idx, cell in enumerate(sheet[1], start=1)}
     for row in sheet.iter_rows(min_row=2):
@@ -215,3 +271,16 @@ def _stringify_answer(value: str | list[str]) -> str:
     if isinstance(value, list):
         return "; ".join(value)
     return value
+
+
+def _usage_totals(result: ArticleResult) -> dict[str, Any]:
+    input_tokens = sum(usage.input_tokens for usage in result.usage)
+    output_tokens = sum(usage.output_tokens for usage in result.usage)
+    total_tokens = sum(usage.total_tokens for usage in result.usage)
+    costs = [usage.estimated_cost_usd for usage in result.usage if usage.estimated_cost_usd is not None]
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "estimated_cost_usd": round(sum(costs), 6) if costs else "",
+    }

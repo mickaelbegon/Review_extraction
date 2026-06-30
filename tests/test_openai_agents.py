@@ -84,7 +84,10 @@ class FakeResponses:
             }
         else:
             raise AssertionError(f"Unexpected schema: {schema_name}")
-        return SimpleNamespace(output_text=json.dumps(payload))
+        return SimpleNamespace(
+            output_text=json.dumps(payload),
+            usage=SimpleNamespace(input_tokens=1000, output_tokens=100, total_tokens=1100),
+        )
 
 
 class FakeClient:
@@ -112,7 +115,17 @@ class QuotaClient:
 class OpenAIAgentTests(unittest.TestCase):
     def test_extract_and_validate_use_strict_json_schema(self) -> None:
         client = FakeClient()
-        agents = DualAgentExtractor(client=client, config=OpenAIConfig(model="extract-model", validator_model="validate-model"))
+        agents = DualAgentExtractor(
+            client=client,
+            config=OpenAIConfig(
+                model="extract-model",
+                validator_model="validate-model",
+                input_cost_per_million=1.0,
+                output_cost_per_million=2.0,
+                validator_input_cost_per_million=3.0,
+                validator_output_cost_per_million=4.0,
+            ),
+        )
 
         screening = agents.screen("paper", "[PAGE 1]\nParticipants were adults.")
         screening_validation = agents.validate_screening("paper", "[PAGE 1]\nParticipants were adults.", screening)
@@ -132,6 +145,12 @@ class OpenAIAgentTests(unittest.TestCase):
         self.assertIn("Paper text follows", client.responses.calls[0]["input"][1]["content"])
         self.assertIn("Screener output to audit", client.responses.calls[1]["input"][1]["content"])
         self.assertIn("Extractor output to audit", client.responses.calls[3]["input"][1]["content"])
+        self.assertEqual([event.step for event in agents.usage_events], ["screening", "screening_validation", "extraction", "extraction_validation"])
+        self.assertEqual(agents.usage_events[0].input_tokens, 1000)
+        self.assertEqual(agents.usage_events[0].output_tokens, 100)
+        self.assertEqual(agents.usage_events[0].estimated_cost_usd, 0.0012)
+        self.assertEqual(agents.usage_events[1].model, "validate-model")
+        self.assertEqual(agents.usage_events[1].estimated_cost_usd, 0.0034)
 
     def test_insufficient_quota_raises_user_facing_error(self) -> None:
         agents = DualAgentExtractor(client=QuotaClient(), config=OpenAIConfig())

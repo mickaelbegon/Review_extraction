@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from .export import write_csv_summary, write_xlsx_summary
-from .models import ArticleResult, FinalScreeningResult
+from .models import ArticleResult, FinalScreeningResult, TokenUsage
 from .openai_agents import DualAgentExtractor
 from .reconcile import reconcile
 from .screening_reconcile import reconcile_screening
@@ -27,6 +27,7 @@ def process_pdf(
     json_path = out_dir / f"{article_id}.json"
     screening_path = out_dir / f"{article_id}.screening.json"
     prefix = _progress_prefix(current, total, pdf_path)
+    article_usage: list[TokenUsage] = []
 
     if reuse_existing and json_path.exists():
         _emit(progress, f"{prefix}reuse existing JSON: {json_path.name}")
@@ -52,24 +53,32 @@ def process_pdf(
         final_screening = FinalScreeningResult.model_validate_json(screening_path.read_text(encoding="utf-8"))
     else:
         _emit(progress, f"{prefix}screen targeted full paper")
+        usage_start = _usage_marker(agents)
         screening = agents.screen(article_id=article_id, paper_context=screening_context.text)
+        _collect_usage(agents, usage_start, article_usage, progress, prefix)
         _emit(progress, f"{prefix}validate screening with broader targeted context")
+        usage_start = _usage_marker(agents)
         screening_validation = agents.validate_screening(
             article_id=article_id,
             paper_context=screening_validation_context.text,
             screening=screening,
         )
+        _collect_usage(agents, usage_start, article_usage, progress, prefix)
         _emit(progress, f"{prefix}reconcile screening")
         final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         if _screening_needs_full_context_fallback(final_screening, screening_context, full_context):
             _emit(progress, f"{prefix}screening uncertain: retry with full PDF context")
+            usage_start = _usage_marker(agents)
             screening = agents.screen(article_id=article_id, paper_context=full_context.text)
+            _collect_usage(agents, usage_start, article_usage, progress, prefix)
             _emit(progress, f"{prefix}validate screening with full PDF context")
+            usage_start = _usage_marker(agents)
             screening_validation = agents.validate_screening(
                 article_id=article_id,
                 paper_context=full_context.text,
                 screening=screening,
             )
+            _collect_usage(agents, usage_start, article_usage, progress, prefix)
             _emit(progress, f"{prefix}reconcile full-context screening")
             final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         screening_path.write_text(final_screening.model_dump_json(indent=2), encoding="utf-8")
@@ -85,8 +94,10 @@ def process_pdf(
             source_pdf=str(pdf_path),
             screening=final_screening,
             answers=[],
+            usage=article_usage,
         )
         json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}")
         if write_highlights:
             _emit(progress, f"{prefix}write highlighted PDF")
             _write_highlights_if_possible(pdf_path, result, out_dir)
@@ -97,14 +108,20 @@ def process_pdf(
     extraction_validation_context = build_extraction_context(pages, max_chars=70_000, target_fraction=0.90)
     _emit(progress, f"{prefix}target extraction context: {_context_report(extraction_context)}")
     _emit(progress, f"{prefix}extract methodological parameters from targeted context")
+    usage_start = _usage_marker(agents)
     extraction = agents.extract(article_id=article_id, paper_context=extraction_context.text)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix)
     _emit(progress, f"{prefix}validate methodological parameters with broader targeted context")
+    usage_start = _usage_marker(agents)
     validation = agents.validate(article_id=article_id, paper_context=extraction_validation_context.text, extraction=extraction)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix)
     _emit(progress, f"{prefix}reconcile methodological parameters")
     result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     result.screening = final_screening
+    result.usage = article_usage
 
     json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}")
 
     if write_highlights:
         _emit(progress, f"{prefix}write highlighted PDF")
@@ -192,3 +209,39 @@ def _screening_needs_full_context_fallback(
     if full_chars <= targeted_chars:
         return False
     return final_screening.overall_decision == "uncertain" or final_screening.review_required
+
+
+def _usage_marker(agents: object) -> int:
+    usage_events = getattr(agents, "usage_events", [])
+    return len(usage_events)
+
+
+def _collect_usage(
+    agents: object,
+    start: int,
+    article_usage: list[TokenUsage],
+    progress: Callable[[str], None] | None,
+    prefix: str,
+) -> None:
+    usage_events = getattr(agents, "usage_events", [])
+    new_events = list(usage_events[start:])
+    article_usage.extend(new_events)
+    for usage in new_events:
+        _emit(progress, f"{prefix}{_format_usage(usage)}")
+
+
+def _format_usage(usage: TokenUsage) -> str:
+    cost = f", cost=${usage.estimated_cost_usd:.6f}" if usage.estimated_cost_usd is not None else ""
+    return (
+        f"usage {usage.step}: model={usage.model}, "
+        f"input={usage.input_tokens}, output={usage.output_tokens}, total={usage.total_tokens}{cost}"
+    )
+
+
+def _usage_summary(usages: list[TokenUsage]) -> str:
+    input_tokens = sum(usage.input_tokens for usage in usages)
+    output_tokens = sum(usage.output_tokens for usage in usages)
+    total_tokens = sum(usage.total_tokens for usage in usages)
+    costs = [usage.estimated_cost_usd for usage in usages if usage.estimated_cost_usd is not None]
+    cost = f", cost=${sum(costs):.6f}" if costs else ""
+    return f"input={input_tokens}, output={output_tokens}, total={total_tokens}{cost}"

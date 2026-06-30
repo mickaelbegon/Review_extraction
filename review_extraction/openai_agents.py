@@ -14,6 +14,7 @@ from .models import (
     ExtractionResult,
     ScreeningResult,
     ScreeningValidationResult,
+    TokenUsage,
     ValidationResult,
 )
 from .screening_schema import screening_prompt
@@ -48,12 +49,22 @@ class OpenAIQuotaError(OpenAIRequestError):
 class OpenAIConfig:
     model: str = "gpt-5.5"
     validator_model: str = "gpt-5.5"
+    input_cost_per_million: float | None = None
+    output_cost_per_million: float | None = None
+    validator_input_cost_per_million: float | None = None
+    validator_output_cost_per_million: float | None = None
 
     @classmethod
     def from_env(cls) -> "OpenAIConfig":
+        input_cost = _optional_float("OPENAI_INPUT_COST_PER_1M")
+        output_cost = _optional_float("OPENAI_OUTPUT_COST_PER_1M")
         return cls(
             model=os.getenv("OPENAI_MODEL", "gpt-5.5"),
             validator_model=os.getenv("OPENAI_VALIDATOR_MODEL", os.getenv("OPENAI_MODEL", "gpt-5.5")),
+            input_cost_per_million=input_cost,
+            output_cost_per_million=output_cost,
+            validator_input_cost_per_million=_optional_float("OPENAI_VALIDATOR_INPUT_COST_PER_1M", input_cost),
+            validator_output_cost_per_million=_optional_float("OPENAI_VALIDATOR_OUTPUT_COST_PER_1M", output_cost),
         )
 
 
@@ -70,6 +81,7 @@ class DualAgentExtractor:
             client = OpenAI()
         self.client = client
         self.config = config or OpenAIConfig.from_env()
+        self.usage_events: list[TokenUsage] = []
 
     def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
         prompt = "\n\n".join(
@@ -97,6 +109,13 @@ class DualAgentExtractor:
         )
         data = _response_json(response)
         data["article_id"] = data.get("article_id") or article_id
+        self._record_usage(
+            response,
+            step="screening",
+            model=self.config.model,
+            input_cost_per_million=self.config.input_cost_per_million,
+            output_cost_per_million=self.config.output_cost_per_million,
+        )
         return ScreeningResult.model_validate(data)
 
     def validate_screening(
@@ -132,6 +151,13 @@ class DualAgentExtractor:
         )
         data = _response_json(response)
         data["article_id"] = data.get("article_id") or article_id
+        self._record_usage(
+            response,
+            step="screening_validation",
+            model=self.config.validator_model,
+            input_cost_per_million=self.config.validator_input_cost_per_million,
+            output_cost_per_million=self.config.validator_output_cost_per_million,
+        )
         return ScreeningValidationResult.model_validate(data)
 
     def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
@@ -160,6 +186,13 @@ class DualAgentExtractor:
         )
         data = _response_json(response)
         data["article_id"] = data.get("article_id") or article_id
+        self._record_usage(
+            response,
+            step="extraction",
+            model=self.config.model,
+            input_cost_per_million=self.config.input_cost_per_million,
+            output_cost_per_million=self.config.output_cost_per_million,
+        )
         return ExtractionResult.model_validate(data)
 
     def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult) -> ValidationResult:
@@ -190,7 +223,33 @@ class DualAgentExtractor:
         )
         data = _response_json(response)
         data["article_id"] = data.get("article_id") or article_id
+        self._record_usage(
+            response,
+            step="extraction_validation",
+            model=self.config.validator_model,
+            input_cost_per_million=self.config.validator_input_cost_per_million,
+            output_cost_per_million=self.config.validator_output_cost_per_million,
+        )
         return ValidationResult.model_validate(data)
+
+    def _record_usage(
+        self,
+        response: object,
+        *,
+        step: str,
+        model: str,
+        input_cost_per_million: float | None,
+        output_cost_per_million: float | None,
+    ) -> None:
+        usage = _response_usage(
+            response,
+            step=step,
+            model=model,
+            input_cost_per_million=input_cost_per_million,
+            output_cost_per_million=output_cost_per_million,
+        )
+        if usage is not None:
+            self.usage_events.append(usage)
 
 
 def _create_response(client: Any, **kwargs: Any) -> object:
@@ -230,3 +289,51 @@ def _response_json(response: object) -> dict:
         except Exception as exc:  # pragma: no cover - defensive SDK compatibility path
             raise RuntimeError("Could not read OpenAI response text.") from exc
     return json.loads(output_text)
+
+
+def _response_usage(
+    response: object,
+    *,
+    step: str,
+    model: str,
+    input_cost_per_million: float | None,
+    output_cost_per_million: float | None,
+) -> TokenUsage | None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+    input_tokens = _usage_int(usage, "input_tokens", "prompt_tokens")
+    output_tokens = _usage_int(usage, "output_tokens", "completion_tokens")
+    total_tokens = _usage_int(usage, "total_tokens") or input_tokens + output_tokens
+    estimated_cost = None
+    if input_cost_per_million is not None and output_cost_per_million is not None:
+        estimated_cost = round(
+            (input_tokens / 1_000_000 * input_cost_per_million)
+            + (output_tokens / 1_000_000 * output_cost_per_million),
+            6,
+        )
+    return TokenUsage(
+        step=step,
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        input_cost_per_million=input_cost_per_million,
+        output_cost_per_million=output_cost_per_million,
+        estimated_cost_usd=estimated_cost,
+    )
+
+
+def _usage_int(usage: object, *names: str) -> int:
+    for name in names:
+        value = usage.get(name) if isinstance(usage, dict) else getattr(usage, name, None)
+        if value is not None:
+            return int(value)
+    return 0
+
+
+def _optional_float(env_name: str, default: float | None = None) -> float | None:
+    raw = os.getenv(env_name)
+    if raw is None or not raw.strip():
+        return default
+    return float(raw)

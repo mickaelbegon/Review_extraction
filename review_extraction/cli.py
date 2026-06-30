@@ -50,8 +50,15 @@ def main() -> None:
 
     review_required = sum(1 for result in results for answer in result.answers if answer.review_required)
     total = sum(len(result.answers) for result in results)
+    input_tokens = sum(usage.input_tokens for result in results for usage in result.usage)
+    output_tokens = sum(usage.output_tokens for result in results for usage in result.usage)
+    total_tokens = sum(usage.total_tokens for result in results for usage in result.usage)
+    costs = [usage.estimated_cost_usd for result in results for usage in result.usage if usage.estimated_cost_usd is not None]
     print(f"Processed {len(results)} PDF(s).")
     print(f"Answers requiring human review: {review_required}/{total}.")
+    print(f"OpenAI usage: input={input_tokens}, output={output_tokens}, total={total_tokens}.")
+    if costs:
+        print(f"Estimated OpenAI cost: ${sum(costs):.6f}.")
     print(f"Outputs written to: {args.out.resolve()}")
 
 

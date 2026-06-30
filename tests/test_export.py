@@ -4,7 +4,14 @@ import unittest
 from pathlib import Path
 
 from review_extraction.export import write_csv_summary, write_xlsx_summary
-from review_extraction.models import ArticleResult, Evidence, FinalAnswer, FinalScreeningCriterion, FinalScreeningResult
+from review_extraction.models import (
+    ArticleResult,
+    Evidence,
+    FinalAnswer,
+    FinalScreeningCriterion,
+    FinalScreeningResult,
+    TokenUsage,
+)
 
 
 class ExportTests(unittest.TestCase):
@@ -12,6 +19,18 @@ class ExportTests(unittest.TestCase):
         result = ArticleResult(
             article_id="paper",
             source_pdf="paper.pdf",
+            usage=[
+                TokenUsage(
+                    step="extraction",
+                    model="test-model",
+                    input_tokens=1000,
+                    output_tokens=200,
+                    total_tokens=1200,
+                    input_cost_per_million=1.0,
+                    output_cost_per_million=2.0,
+                    estimated_cost_usd=0.0014,
+                )
+            ],
             answers=[
                 FinalAnswer(
                     item_id="measurement_methods",
@@ -48,6 +67,10 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(row["evidence_pages"], "3; 4")
         self.assertIn("optical markers", row["evidence_quotes"])
         self.assertIn("IMUs", row["evidence_quotes"])
+        self.assertEqual(row["usage_input_tokens"], "1000")
+        self.assertEqual(row["usage_output_tokens"], "200")
+        self.assertEqual(row["usage_total_tokens"], "1200")
+        self.assertEqual(row["usage_estimated_cost_usd"], "0.0014")
 
     def test_write_csv_summary_includes_screening_only_rows(self) -> None:
         result = ArticleResult(
@@ -83,6 +106,18 @@ class ExportTests(unittest.TestCase):
         result = ArticleResult(
             article_id="paper",
             source_pdf="paper.pdf",
+            usage=[
+                TokenUsage(
+                    step="screening",
+                    model="screen-model",
+                    input_tokens=500,
+                    output_tokens=50,
+                    total_tokens=550,
+                    input_cost_per_million=1.0,
+                    output_cost_per_million=2.0,
+                    estimated_cost_usd=0.0006,
+                )
+            ],
             screening=FinalScreeningResult(
                 article_id="paper",
                 overall_decision="include",
@@ -129,11 +164,14 @@ class ExportTests(unittest.TestCase):
             from openpyxl import load_workbook
 
             workbook = load_workbook(out_path)
-            self.assertEqual(set(workbook.sheetnames), {"Summary", "Screening", "Extraction", "Review required"})
+            self.assertEqual(set(workbook.sheetnames), {"Summary", "Screening", "Extraction", "Review required", "Usage"})
             self.assertEqual(workbook["Summary"]["A2"].value, "paper")
             self.assertEqual(workbook["Screening"]["C2"].value, "outcome")
             self.assertEqual(workbook["Extraction"]["F2"].value, "measurement_methods")
             self.assertEqual(workbook["Review required"]["A2"].value, "paper")
+            self.assertEqual(workbook["Usage"]["C2"].value, "screening")
+            self.assertEqual(workbook["Usage"]["E2"].value, 500)
+            self.assertEqual(workbook["Usage"]["J2"].value, 0.0006)
 
 
 if __name__ == "__main__":
