@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from .export import write_csv_summary
+from .export import write_csv_summary, write_xlsx_summary
 from .models import ArticleResult, FinalScreeningResult
 from .openai_agents import DualAgentExtractor
 from .reconcile import reconcile
@@ -128,6 +128,8 @@ def process_many(
     index_path.write_text(json.dumps([result.model_dump() for result in results], indent=2), encoding="utf-8")
     _emit(progress, "write summary.csv")
     write_csv_summary(results, out_dir / "summary.csv")
+    _emit(progress, "write summary.xlsx")
+    write_xlsx_summary(results, out_dir / "summary.xlsx")
     return results
 
 

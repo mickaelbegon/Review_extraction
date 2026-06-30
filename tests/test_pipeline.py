@@ -36,6 +36,7 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(results, [])
             self.assertTrue((out_dir / "index.json").exists())
             self.assertTrue((out_dir / "summary.csv").exists())
+            self.assertTrue((out_dir / "summary.xlsx").exists())
             self.assertEqual(json.loads((out_dir / "index.json").read_text(encoding="utf-8")), [])
 
     def test_process_pdf_reuses_existing_article_json_without_ai_calls(self) -> None:

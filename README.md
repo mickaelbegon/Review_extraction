@@ -6,6 +6,7 @@ Le pipeline produit:
 
 - un screening full paper inclusion/exclusion avant extraction;
 - un JSON de screening par article;
+- un fichier Excel `summary.xlsx` avec feuilles `Summary`, `Screening`, `Extraction` et `Review required`;
 - un JSON structuré par article et par question;
 - un CSV synthèse pour la revue;
 - une confiance finale;
@@ -61,7 +62,7 @@ Par defaut, la CLI reutilise les fichiers deja presents dans `outputs`:
 
 - si `article.json` existe, aucun appel OpenAI n'est refait pour cet article;
 - si seul `article.screening.json` existe, le screening est reutilise et le pipeline reprend a l'extraction detaillee si elle est autorisee;
-- les PDF surlignes et `summary.csv` peuvent etre regeneres a partir des JSON existants.
+- les PDF surlignes, `summary.csv` et `summary.xlsx` peuvent etre regeneres a partir des JSON existants.
 
 Commande de reprise:
 
