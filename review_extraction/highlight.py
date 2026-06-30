@@ -8,12 +8,14 @@ from .models import ArticleResult
 
 
 HIGHLIGHT_COLORS = {
-    "measurement": (1.0, 0.88, 0.25),
-    "segment": (0.45, 0.75, 1.0),
-    "joint": (0.55, 0.95, 0.60),
-    "review": (1.0, 0.45, 0.45),
-    "default": (0.85, 0.75, 1.0),
+    "measurement": (1.0, 0.93, 0.55),
+    "segment": (0.62, 0.84, 1.0),
+    "joint": (0.68, 0.96, 0.72),
+    "review": (1.0, 0.64, 0.64),
+    "default": (0.90, 0.82, 1.0),
 }
+
+HIGHLIGHT_OPACITY = 0.35
 
 
 def write_highlighted_pdf(source_pdf: Path, result: ArticleResult, out_pdf: Path) -> int:
@@ -63,6 +65,7 @@ def _highlight_evidence(
     for rect in matches[:3]:
         annot = page.add_highlight_annot(rect)
         annot.set_colors(stroke=color)
+        annot.set_opacity(HIGHLIGHT_OPACITY)
         annot.set_info(content=content)
         annot.update()
         highlights += 1
