@@ -20,6 +20,7 @@ HIGHLIGHT_OPACITY = 0.35
 
 def write_highlighted_pdf(source_pdf: Path, result: ArticleResult, out_pdf: Path) -> int:
     highlights = 0
+    seen_rects: set[tuple[int, float, float, float, float]] = set()
     with fitz.open(source_pdf) as doc:
         if result.screening is not None:
             for criterion in result.screening.criteria:
@@ -32,6 +33,7 @@ def write_highlighted_pdf(source_pdf: Path, result: ArticleResult, out_pdf: Path
                         color=color,
                         content=f"screening.{criterion.criterion_id}: {criterion.final_decision} "
                         f"(confidence {criterion.final_confidence})",
+                        seen_rects=seen_rects,
                     )
         for answer in result.answers:
             color = _color_for_item(answer.item_id, answer.review_required)
@@ -42,6 +44,7 @@ def write_highlighted_pdf(source_pdf: Path, result: ArticleResult, out_pdf: Path
                     quote=evidence.quote,
                     color=color,
                     content=f"{answer.item_id}: {answer.final_answer} (confidence {answer.final_confidence})",
+                    seen_rects=seen_rects,
                 )
         doc.save(out_pdf, garbage=4, deflate=True)
     return highlights
@@ -53,6 +56,7 @@ def _highlight_evidence(
     quote: str,
     color: tuple[float, float, float],
     content: str,
+    seen_rects: set[tuple[int, float, float, float, float]],
 ) -> int:
     if not quote.strip() or page_number is None:
         return 0
@@ -63,6 +67,10 @@ def _highlight_evidence(
     matches = page.search_for(_trim_quote(quote))
     highlights = 0
     for rect in matches[:3]:
+        key = _rect_key(page_number, rect)
+        if key in seen_rects:
+            continue
+        seen_rects.add(key)
         annot = page.add_highlight_annot(rect)
         annot.set_colors(stroke=color)
         annot.set_opacity(HIGHLIGHT_OPACITY)
@@ -70,6 +78,16 @@ def _highlight_evidence(
         annot.update()
         highlights += 1
     return highlights
+
+
+def _rect_key(page_number: int, rect: fitz.Rect) -> tuple[int, float, float, float, float]:
+    return (
+        page_number,
+        round(rect.x0, 1),
+        round(rect.y0, 1),
+        round(rect.x1, 1),
+        round(rect.y1, 1),
+    )
 
 
 def _trim_quote(quote: str) -> str:
