@@ -55,6 +55,26 @@ review-extract .\pdfs --out .\outputs --no-highlight
 review-extract .\pdfs --out .\outputs --model gpt-5.5 --validator-model gpt-5.5
 ```
 
+## Reprise sans relancer l'IA
+
+Par defaut, la CLI reutilise les fichiers deja presents dans `outputs`:
+
+- si `article.json` existe, aucun appel OpenAI n'est refait pour cet article;
+- si seul `article.screening.json` existe, le screening est reutilise et le pipeline reprend a l'extraction detaillee si elle est autorisee;
+- les PDF surlignes et `summary.csv` peuvent etre regeneres a partir des JSON existants.
+
+Commande de reprise:
+
+```powershell
+review-extract .\pdf_input --out .\outputs
+```
+
+Pour forcer une nouvelle analyse OpenAI et ignorer les JSON existants:
+
+```powershell
+review-extract .\pdf_input --out .\outputs --force
+```
+
 ## Tests
 
 Les tests unitaires utilisent `unittest`, donc ils peuvent tourner sans `pytest`:
