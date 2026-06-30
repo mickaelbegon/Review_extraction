@@ -14,9 +14,8 @@ Le pipeline produit:
 ## Installation
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[dev,api]"
+conda env create -f environment.yml
+conda activate review-extraction
 copy .env.example .env
 ```
 
