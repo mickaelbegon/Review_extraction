@@ -36,6 +36,7 @@ def main() -> None:
         agents,
         write_highlights=not args.no_highlight,
         reuse_existing=not args.force,
+        progress=lambda message: print(message, flush=True),
     )
     review_required = sum(1 for result in results for answer in result.answers if answer.review_required)
     total = sum(len(result.answers) for result in results)

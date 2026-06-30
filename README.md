@@ -69,6 +69,16 @@ Commande de reprise:
 review-extract .\pdf_input --out .\outputs
 ```
 
+La console affiche la progression:
+
+```text
+Found 12 PDF(s) to process.
+[1/12] article.pdf: reuse existing JSON: article.json
+[1/12] article.pdf: done
+[2/12] autre_article.pdf: extract PDF text
+[2/12] autre_article.pdf: screen full paper
+```
+
 Pour forcer une nouvelle analyse OpenAI et ignorer les JSON existants:
 
 ```powershell

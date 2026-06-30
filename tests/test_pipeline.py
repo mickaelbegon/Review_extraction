@@ -52,6 +52,33 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(loaded.article_id, "paper")
             self.assertEqual(loaded.answers, [])
 
+    def test_process_many_reports_progress_for_cached_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "pdf_input"
+            out_dir = root / "outputs"
+            input_dir.mkdir()
+            out_dir.mkdir()
+            pdf_path = input_dir / "paper.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4\n")
+            result = ArticleResult(article_id="paper", source_pdf=str(pdf_path), answers=[])
+            (out_dir / "paper.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+            messages: list[str] = []
+
+            process_many(
+                input_dir,
+                out_dir,
+                agents=ExplodingAgents(),
+                write_highlights=False,
+                progress=messages.append,
+            )
+
+            self.assertIn("Found 1 PDF(s) to process.", messages)
+            self.assertTrue(any("[1/1] paper.pdf: reuse existing JSON: paper.json" in message for message in messages))
+            self.assertIn("[1/1] paper.pdf: done", messages)
+            self.assertIn("write index.json", messages)
+            self.assertIn("write summary.csv", messages)
+
     def test_force_ignores_cached_article_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
