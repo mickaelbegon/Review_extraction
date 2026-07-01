@@ -176,7 +176,43 @@ Puis téléverser un PDF:
 curl -X POST "http://127.0.0.1:8000/extract" -F "file=@paper.pdf" -F "output_dir=outputs"
 ```
 
-## Architecture
+## Architecture des agents
+
+```mermaid
+flowchart TD
+    A["PDF full paper"] --> B["Extraction locale du texte par page"]
+    B --> C["Selection ciblee des passages pertinents"]
+
+    C --> D["Agent 1: Screener"]
+    D --> E["Decision inclusion/exclusion + preuves"]
+
+    C --> F["Agent 2: Validateur screening"]
+    E --> F
+    F --> G["Reconciliation screening"]
+
+    G --> H{"Article inclus sans review_required ?"}
+
+    H -- "Non" --> I["Stop extraction detaillee"]
+    I --> J["JSON + Excel + preuves screening"]
+
+    H -- "Oui" --> K["Selection ciblee methodologie"]
+
+    K --> L["Agent 1: Extracteur"]
+    L --> M["Reponses aux questions + confiance + citations"]
+
+    K --> N["Agent 2: Validateur extraction"]
+    M --> N
+    N --> O["Reconciliation item par item"]
+
+    O --> P["Reponse finale"]
+    P --> Q["Score de confiance final"]
+    P --> R["review_required si divergence/faible preuve"]
+    P --> S["JSON, Excel, PDF surligne, usage tokens/couts"]
+```
+
+Le premier agent produit la decision ou l'extraction initiale a partir de passages cibles. Le second agent recoit cette sortie et un contexte cible souvent plus large, puis audite les preuves comme validateur independant. La reconciliation est deterministe: accord fort et preuves presentes augmente la confiance; divergence, confiance basse ou preuves insuffisantes declenche `review_required`.
+
+## Architecture simplifiee
 
 ```mermaid
 flowchart TD
