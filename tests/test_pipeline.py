@@ -337,6 +337,49 @@ class EscalationAgents(RecordingAgents):
         )
 
 
+class ExcludingAgents(RecordingAgents):
+    def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
+        self.screen_contexts.append(paper_context)
+        self.usage_events.append(TokenUsage(step="screening", model="model", total_tokens=1))
+        return ScreeningResult(
+            article_id=article_id,
+            overall_decision="exclude",
+            criteria=[
+                ScreeningCriterionAnswer(
+                    criterion_id="outcome",
+                    decision="exclude",
+                    confidence=0.95,
+                    evidence=[Evidence(page=1, quote="Elbow kinematics only.", relevance="outcome")],
+                    rationale_short="No shoulder outcome.",
+                )
+            ],
+        )
+
+    def validate_screening(
+        self,
+        article_id: str,
+        paper_context: str,
+        screening: ScreeningResult,
+    ) -> ScreeningValidationResult:
+        self.screen_validation_contexts.append(paper_context)
+        self.usage_events.append(TokenUsage(step="screening_validation", model="validator", total_tokens=1))
+        return ScreeningValidationResult(
+            article_id=article_id,
+            overall_status="agree",
+            corrected_overall_decision=None,
+            decisions=[
+                ScreeningValidationDecision(
+                    criterion_id="outcome",
+                    status="agree",
+                    corrected_decision=None,
+                    confidence=0.95,
+                    evidence=[],
+                    critique="Exclusion supported.",
+                )
+            ],
+        )
+
+
 class PipelineTests(unittest.TestCase):
     def test_process_many_creates_outputs_for_empty_pdf_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -494,6 +537,36 @@ class PipelineTests(unittest.TestCase):
             self.assertTrue(any(answer.item_id == "clavicle_used" and answer.final_answer == "no" for answer in result.answers))
             self.assertIsNotNone(result.processing_seconds)
             self.assertTrue(all(usage.elapsed_seconds is not None for usage in result.usage))
+
+    def test_force_include_runs_extraction_after_excluded_screening(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_path = root / "paper.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4\n")
+            out_dir = root / "outputs"
+            pages = [
+                SimpleNamespace(page=1, text="Abstract. Elbow kinematics only."),
+                SimpleNamespace(page=2, text="Methods. Thorax coordinate system was used."),
+            ]
+            fake_pdf_ingest = ModuleType("review_extraction.pdf_ingest")
+            fake_pdf_ingest.extract_pdf_text = lambda path: pages
+            original_pdf_ingest = sys.modules.get("review_extraction.pdf_ingest")
+            sys.modules["review_extraction.pdf_ingest"] = fake_pdf_ingest
+            agents = ExcludingAgents()
+
+            try:
+                result = process_pdf(pdf_path, out_dir, agents=agents, write_highlights=False, force_include=True)
+            finally:
+                if original_pdf_ingest is None:
+                    sys.modules.pop("review_extraction.pdf_ingest", None)
+                else:
+                    sys.modules["review_extraction.pdf_ingest"] = original_pdf_ingest
+
+            self.assertEqual(result.screening.overall_decision, "include")
+            self.assertTrue(result.screening.extraction_allowed)
+            self.assertTrue(result.screening.review_required)
+            self.assertTrue(result.answers)
+            self.assertTrue(result.study_metadata)
 
     def test_uncertain_screening_escalates_to_fallback_model(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

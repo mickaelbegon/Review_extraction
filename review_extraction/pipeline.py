@@ -21,6 +21,7 @@ def process_pdf(
     *,
     write_highlights: bool = True,
     reuse_existing: bool = True,
+    force_include: bool = False,
     progress: Callable[[str], None] | None = None,
     current: int | None = None,
     total: int | None = None,
@@ -98,6 +99,16 @@ def process_pdf(
             _emit(progress, f"{prefix}reconcile full-context screening")
             final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         screening_path.write_text(final_screening.model_dump_json(indent=2), encoding="utf-8")
+
+    if force_include and not final_screening.extraction_allowed:
+        _emit(progress, f"{prefix}human override: force include and run detailed extraction")
+        final_screening = final_screening.model_copy(
+            update={
+                "overall_decision": "include",
+                "extraction_allowed": True,
+                "review_required": True,
+            }
+        )
 
     if not final_screening.extraction_allowed:
         _emit(
@@ -216,6 +227,7 @@ def process_many(
     *,
     write_highlights: bool = True,
     reuse_existing: bool = True,
+    force_include: bool = False,
     limit: int | None = None,
     workers: int = 1,
     agent_factory: Callable[[], DualAgentExtractor] | None = None,
@@ -243,6 +255,7 @@ def process_many(
                     agents,
                     write_highlights=write_highlights,
                     reuse_existing=reuse_existing,
+                    force_include=force_include,
                     progress=progress,
                     current=current,
                     total=total,
@@ -264,6 +277,7 @@ def process_many(
                     agent_factory(),
                     write_highlights=write_highlights,
                     reuse_existing=reuse_existing,
+                    force_include=force_include,
                     progress=progress,
                     current=current,
                     total=total,

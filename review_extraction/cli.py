@@ -18,6 +18,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fallback-validator-model", default=None, help="OpenAI validator model for uncertain or complex cases.")
     parser.add_argument("--no-highlight", action="store_true", help="Disable highlighted PDF output.")
     parser.add_argument("--force", action="store_true", help="Re-run AI extraction even when output JSON files already exist.")
+    parser.add_argument(
+        "--force-include",
+        action="store_true",
+        help="Human reviewer override: run metadata and detailed extraction even if screening excludes the PDF.",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Process only the first N PDFs after sorting by filename.")
     parser.add_argument("--workers", type=int, default=1, help="Number of PDFs to process in parallel.")
     return parser
@@ -46,6 +51,7 @@ def main() -> None:
             agents,
             write_highlights=not args.no_highlight,
             reuse_existing=not args.force,
+            force_include=args.force_include,
             limit=args.limit,
             workers=args.workers,
             agent_factory=lambda: DualAgentExtractor(config=config),

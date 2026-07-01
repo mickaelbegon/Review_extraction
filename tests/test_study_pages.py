@@ -2,7 +2,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from review_extraction.models import ArticleResult, Evidence, FinalAnswer, FinalScreeningResult, StudyMetadataField
+from review_extraction.models import (
+    ArticleResult,
+    Evidence,
+    FinalAnswer,
+    FinalScreeningCriterion,
+    FinalScreeningResult,
+    StudyMetadataField,
+)
 from review_extraction.study_pages import load_article_results, write_study_page_workbooks
 
 
@@ -75,6 +82,72 @@ class StudyPagesTests(unittest.TestCase):
             loaded = load_article_results(root)
 
             self.assertEqual([item.article_id for item in loaded], ["paper"])
+
+    def test_choice_format_starts_with_screening_and_evidence_columns(self) -> None:
+        result = ArticleResult(
+            article_id="paper",
+            source_pdf="paper.pdf",
+            study_metadata=[
+                StudyMetadataField(
+                    field_id="study_id",
+                    value="Ludewig2009",
+                    confidence=0.9,
+                    evidence=[Evidence(page=1, quote="Ludewig 2009.", relevance="title")],
+                    rationale_short="Study ID.",
+                ),
+            ],
+            screening=FinalScreeningResult(
+                article_id="paper",
+                overall_decision="include",
+                final_confidence=0.9,
+                review_required=False,
+                extraction_allowed=True,
+                criteria=[
+                    FinalScreeningCriterion(
+                        criterion_id="outcome",
+                        final_decision="include",
+                        screener_decision="include",
+                        validator_status="agree",
+                        validator_decision="include",
+                        screener_confidence=0.9,
+                        validator_confidence=0.9,
+                        final_confidence=0.9,
+                        evidence=[Evidence(page=2, quote="Shoulder kinematics were measured.", relevance="outcome")],
+                        rationale_short="Shoulder kinematics present.",
+                        review_required=False,
+                    )
+                ],
+            ),
+            answers=[
+                FinalAnswer(
+                    item_id="thorax_used",
+                    final_answer="yes",
+                    extractor_answer="yes",
+                    validator_status="agree",
+                    extractor_confidence=0.8,
+                    validator_confidence=0.9,
+                    final_confidence=0.85,
+                    evidence=[Evidence(page=3, quote="Thorax angles were reported.", relevance="thorax")],
+                    rationale_short="Thorax used.",
+                    review_required=False,
+                )
+            ],
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_paths = write_study_page_workbooks([result], Path(tmp), choice_format=True)
+
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(out_paths[0])
+            sheet = workbook["Ludewig2009"]
+            self.assertEqual(out_paths[0].name, "study_pages_choices.xlsx")
+            self.assertEqual(sheet["A4"].value, "1. Screening")
+            self.assertEqual(sheet["C3"].value, "Allowed choices / coding")
+            self.assertEqual(sheet["H3"].value, "Evidence used")
+            self.assertEqual(sheet["B5"].value, "Overall screening decision")
+            self.assertEqual(sheet["B6"].value, "Outcome")
+            self.assertIn("Shoulder kinematics", sheet["H6"].value)
 
 
 if __name__ == "__main__":
