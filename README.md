@@ -106,6 +106,14 @@ review-extract .\pdfs --out .\outputs --model gpt-5.4 --validator-model gpt-5.4 
 review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --workers 2 --no-highlight
 ```
 
+Si un evaluateur decide qu'un article exclu par le screening doit tout de meme etre inclus, utilisez l'override humain:
+
+```powershell
+review-extract ".\pdf_input\article.pdf" --out ".\outputs_reviewer_overrides" --force --force-include
+```
+
+`--force-include` garde les details du screening dans le JSON, mais force l'extraction des metadonnees et des parametres methodologiques. Utilisez-le de preference sur un seul PDF ou sur un petit lot explicitement valide par les evaluateurs.
+
 Pour estimer le cout et le temps de l'approche hybride sur 10 articles sans surlignage:
 
 ```powershell
@@ -185,6 +193,22 @@ Une sortie post-hoc cree un classeur Excel type "page Covidence", avec un onglet
 review-study-pages --results .\outputs_hybrid_10 --out .\study_pages
 ```
 
+Pour un format plus proche du fichier Word, avec choix de reponse, screening en premier et une colonne separee pour les preuves utilisees:
+
+```powershell
+review-study-pages --results .\outputs_hybrid_10 --out .\study_pages_hybrid_10_choice --choice-format
+```
+
+Ce format contient, dans chaque onglet:
+
+- `1. Screening`;
+- `2. Study-level data`;
+- `3. Word extraction form`;
+- `Allowed choices / coding`;
+- `Selected answer`;
+- `Evidence used`;
+- `Confidence`, `Review required`, `Status` et `Rationale / notes`.
+
 Pour diviser les classeurs par premiere lettre de Study ID:
 
 ```powershell
@@ -221,6 +245,18 @@ Pour forcer une nouvelle analyse OpenAI et ignorer les JSON existants:
 
 ```powershell
 review-extract .\pdf_input --out .\outputs --force
+```
+
+Pour relancer un article que les evaluateurs veulent inclure malgre une exclusion IA:
+
+```powershell
+review-extract ".\pdf_input\article.pdf" --out ".\outputs_reviewer_overrides" --force --force-include
+```
+
+Cela est utile apres une revue humaine du screening. La sortie peut ensuite etre transformee en page Excel:
+
+```powershell
+review-study-pages --results ".\outputs_reviewer_overrides" --out ".\study_pages_reviewer_overrides" --choice-format
 ```
 
 ## Benchmark de modeles
@@ -320,6 +356,9 @@ flowchart TD
     D --> E{"Decision finale<br/>include sans review_required ?"}
     E -- "Non" --> F["Arret de l'extraction detaillee"]
     F --> G["Sorties screening<br/>JSON, CSV/XLSX, PDF surligne"]
+    G --> Q{"Override humain<br/>--force-include ?"}
+    Q -- "Oui" --> H
+    Q -- "Non" --> R["Audit humain / Covidence"]
     E -- "Oui" --> H["Extraction methodologique"]
     H --> I["Validation independante"]
     I --> J["Reconciliation deterministe"]
@@ -367,6 +406,9 @@ flowchart TD
 
     D -- "Oui" --> G
     G -- "Non" --> H["Stop extraction<br/>conserver screening + preuves"]
+    H --> Q{"Evaluateur inclut ?<br/>--force-include"}
+    Q -- "Oui" --> I
+    Q -- "Non" --> R["Fin / exclusion documentee"]
     G -- "Oui" --> I["Extraction gpt-5.4"]
     I --> J["Validation extraction gpt-5.4"]
     J --> K{"Extraction fiable ?"}
@@ -393,6 +435,7 @@ flowchart LR
     G -- "article.json existe" --> H["Reutiliser sans appel OpenAI"]
     G -- "seul .screening.json existe" --> I["Reprendre apres screening"]
     G -- "--force" --> J["Refaire les appels OpenAI"]
+    G -- "--force-include" --> K["Override humain<br/>extraire malgre exclusion"]
 ```
 
 Les fichiers JSON sont la source de verite locale. Ils permettent de regenerer les exports et de reprendre une analyse sans repayer les appels deja termines.
