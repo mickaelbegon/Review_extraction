@@ -99,8 +99,29 @@ Options utiles:
 
 ```powershell
 review-extract .\pdfs --out .\outputs --no-highlight
-review-extract .\pdfs --out .\outputs --model gpt-5.5 --validator-model gpt-5.5
+review-extract .\pdfs --out .\outputs --model gpt-5.4 --validator-model gpt-5.4 --fallback-model gpt-5.5 --fallback-validator-model gpt-5.5
 ```
+
+## Strategie hybride recommandee
+
+Par defaut, le pipeline utilise une strategie hybride:
+
+- screening initial: `gpt-5.4`;
+- validation du screening: `gpt-5.4`;
+- si le screening reste `uncertain` ou demande `review_required`: relance screening + validation avec `gpt-5.5` sur le contexte complet;
+- extraction detaillee: `gpt-5.4` seulement si le screening final est clair;
+- si l'extraction est divergente, insuffisamment prouvee ou demande `review_required`: relance extraction + validation avec `gpt-5.5`.
+
+Variables `.env` correspondantes:
+
+```text
+OPENAI_MODEL=gpt-5.4
+OPENAI_VALIDATOR_MODEL=gpt-5.4
+OPENAI_FALLBACK_MODEL=gpt-5.5
+OPENAI_FALLBACK_VALIDATOR_MODEL=gpt-5.5
+```
+
+La console indique explicitement quand une escalade vers `gpt-5.5` est declenchee.
 
 ## Reprise sans relancer l'IA
 

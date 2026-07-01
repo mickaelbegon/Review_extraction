@@ -67,16 +67,24 @@ def process_pdf(
         _emit(progress, f"{prefix}reconcile screening")
         final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         if _screening_needs_full_context_fallback(final_screening, screening_context, full_context):
-            _emit(progress, f"{prefix}screening uncertain: retry with full PDF context")
+            _emit(
+                progress,
+                f"{prefix}screening uncertain/complex: escalate to {agents.config.fallback_model} with full PDF context",
+            )
             usage_start = _usage_marker(agents)
-            screening = agents.screen(article_id=article_id, paper_context=full_context.text)
+            screening = agents.screen(
+                article_id=article_id,
+                paper_context=full_context.text,
+                model=agents.config.fallback_model,
+            )
             _collect_usage(agents, usage_start, article_usage, progress, prefix)
-            _emit(progress, f"{prefix}validate screening with full PDF context")
+            _emit(progress, f"{prefix}validate screening with {agents.config.fallback_validator_model} full PDF context")
             usage_start = _usage_marker(agents)
             screening_validation = agents.validate_screening(
                 article_id=article_id,
                 paper_context=full_context.text,
                 screening=screening,
+                model=agents.config.fallback_validator_model,
             )
             _collect_usage(agents, usage_start, article_usage, progress, prefix)
             _emit(progress, f"{prefix}reconcile full-context screening")
@@ -117,6 +125,29 @@ def process_pdf(
     _collect_usage(agents, usage_start, article_usage, progress, prefix)
     _emit(progress, f"{prefix}reconcile methodological parameters")
     result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
+    if _extraction_needs_fallback(result):
+        _emit(
+            progress,
+            f"{prefix}extraction complex/divergent: escalate to {agents.config.fallback_model}",
+        )
+        usage_start = _usage_marker(agents)
+        extraction = agents.extract(
+            article_id=article_id,
+            paper_context=extraction_context.text,
+            model=agents.config.fallback_model,
+        )
+        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _emit(progress, f"{prefix}validate escalated extraction with {agents.config.fallback_validator_model}")
+        usage_start = _usage_marker(agents)
+        validation = agents.validate(
+            article_id=article_id,
+            paper_context=extraction_validation_context.text,
+            extraction=extraction,
+            model=agents.config.fallback_validator_model,
+        )
+        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _emit(progress, f"{prefix}reconcile escalated methodological parameters")
+        result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     result.screening = final_screening
     result.usage = article_usage
 
@@ -209,6 +240,10 @@ def _screening_needs_full_context_fallback(
     if full_chars <= targeted_chars:
         return False
     return final_screening.overall_decision == "uncertain" or final_screening.review_required
+
+
+def _extraction_needs_fallback(result: ArticleResult) -> bool:
+    return any(answer.review_required or answer.validator_status != "agree" for answer in result.answers)
 
 
 def _usage_marker(agents: object) -> int:

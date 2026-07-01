@@ -14,6 +14,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, default=Path("outputs"), help="Output directory.")
     parser.add_argument("--model", default=None, help="OpenAI model for extraction.")
     parser.add_argument("--validator-model", default=None, help="OpenAI model for independent validation.")
+    parser.add_argument("--fallback-model", default=None, help="OpenAI model for uncertain or complex cases.")
+    parser.add_argument("--fallback-validator-model", default=None, help="OpenAI validator model for uncertain or complex cases.")
     parser.add_argument("--no-highlight", action="store_true", help="Disable highlighted PDF output.")
     parser.add_argument("--force", action="store_true", help="Re-run AI extraction even when output JSON files already exist.")
     return parser
@@ -29,6 +31,10 @@ def main() -> None:
         config.model = args.model
     if args.validator_model:
         config.validator_model = args.validator_model
+    if args.fallback_model:
+        config.fallback_model = args.fallback_model
+    if args.fallback_validator_model:
+        config.fallback_validator_model = args.fallback_validator_model
 
     try:
         agents = DualAgentExtractor(config=config)

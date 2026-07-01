@@ -48,8 +48,10 @@ class OpenAIQuotaError(OpenAIRequestError):
 
 @dataclass
 class OpenAIConfig:
-    model: str = "gpt-5.5"
-    validator_model: str = "gpt-5.5"
+    model: str = "gpt-5.4"
+    validator_model: str = "gpt-5.4"
+    fallback_model: str = "gpt-5.5"
+    fallback_validator_model: str = "gpt-5.5"
     input_cost_per_million: float | None = None
     cached_input_cost_per_million: float | None = None
     output_cost_per_million: float | None = None
@@ -65,8 +67,10 @@ class OpenAIConfig:
         cached_input_cost = _optional_float("OPENAI_CACHED_INPUT_COST_PER_1M")
         output_cost = _optional_float("OPENAI_OUTPUT_COST_PER_1M")
         config = cls(
-            model=os.getenv("OPENAI_MODEL", "gpt-5.5"),
-            validator_model=os.getenv("OPENAI_VALIDATOR_MODEL", os.getenv("OPENAI_MODEL", "gpt-5.5")),
+            model=os.getenv("OPENAI_MODEL", "gpt-5.4"),
+            validator_model=os.getenv("OPENAI_VALIDATOR_MODEL", os.getenv("OPENAI_MODEL", "gpt-5.4")),
+            fallback_model=os.getenv("OPENAI_FALLBACK_MODEL", "gpt-5.5"),
+            fallback_validator_model=os.getenv("OPENAI_FALLBACK_VALIDATOR_MODEL", os.getenv("OPENAI_FALLBACK_MODEL", "gpt-5.5")),
             input_cost_per_million=input_cost,
             cached_input_cost_per_million=cached_input_cost,
             output_cost_per_million=output_cost,
@@ -96,6 +100,24 @@ class OpenAIConfig:
             if self.validator_output_cost_per_million is None:
                 self.validator_output_cost_per_million = validator_pricing.output_with_tax
 
+    def costs_for_model(self, model: str, *, validator: bool = False) -> tuple[float | None, float | None, float | None]:
+        if validator and model == self.validator_model:
+            return (
+                self.validator_input_cost_per_million,
+                self.validator_cached_input_cost_per_million,
+                self.validator_output_cost_per_million,
+            )
+        if not validator and model == self.model:
+            return (
+                self.input_cost_per_million,
+                self.cached_input_cost_per_million,
+                self.output_cost_per_million,
+            )
+        pricing = pricing_for_model(model, tax_rate=self.tax_rate)
+        if pricing is None:
+            return (None, None, None)
+        return (pricing.input_with_tax, pricing.cached_input_with_tax, pricing.output_with_tax)
+
 
 class DualAgentExtractor:
     def __init__(self, client: Any | None = None, config: OpenAIConfig | None = None) -> None:
@@ -113,7 +135,8 @@ class DualAgentExtractor:
         self.config.apply_model_pricing()
         self.usage_events: list[TokenUsage] = []
 
-    def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
+    def screen(self, article_id: str, paper_context: str, *, model: str | None = None) -> ScreeningResult:
+        selected_model = model or self.config.model
         prompt = "\n\n".join(
             [
                 screening_prompt(),
@@ -123,7 +146,7 @@ class DualAgentExtractor:
         )
         response = _create_response(
             self.client,
-            model=self.config.model,
+            model=selected_model,
             input=[
                 {"role": "system", "content": SCREENING_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -142,10 +165,8 @@ class DualAgentExtractor:
         self._record_usage(
             response,
             step="screening",
-            model=self.config.model,
-            input_cost_per_million=self.config.input_cost_per_million,
-            cached_input_cost_per_million=self.config.cached_input_cost_per_million,
-            output_cost_per_million=self.config.output_cost_per_million,
+            model=selected_model,
+            validator=False,
         )
         return ScreeningResult.model_validate(data)
 
@@ -154,7 +175,10 @@ class DualAgentExtractor:
         article_id: str,
         paper_context: str,
         screening: ScreeningResult,
+        *,
+        model: str | None = None,
     ) -> ScreeningValidationResult:
+        selected_model = model or self.config.validator_model
         prompt = "\n\n".join(
             [
                 screening_prompt(),
@@ -166,7 +190,7 @@ class DualAgentExtractor:
         )
         response = _create_response(
             self.client,
-            model=self.config.validator_model,
+            model=selected_model,
             input=[
                 {"role": "system", "content": SCREENING_VALIDATOR_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -185,14 +209,13 @@ class DualAgentExtractor:
         self._record_usage(
             response,
             step="screening_validation",
-            model=self.config.validator_model,
-            input_cost_per_million=self.config.validator_input_cost_per_million,
-            cached_input_cost_per_million=self.config.validator_cached_input_cost_per_million,
-            output_cost_per_million=self.config.validator_output_cost_per_million,
+            model=selected_model,
+            validator=True,
         )
         return ScreeningValidationResult.model_validate(data)
 
-    def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
+    def extract(self, article_id: str, paper_context: str, *, model: str | None = None) -> ExtractionResult:
+        selected_model = model or self.config.model
         prompt = "\n\n".join(
             [
                 extraction_form_prompt(),
@@ -202,7 +225,7 @@ class DualAgentExtractor:
         )
         response = _create_response(
             self.client,
-            model=self.config.model,
+            model=selected_model,
             input=[
                 {"role": "system", "content": EXTRACTOR_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -221,14 +244,20 @@ class DualAgentExtractor:
         self._record_usage(
             response,
             step="extraction",
-            model=self.config.model,
-            input_cost_per_million=self.config.input_cost_per_million,
-            cached_input_cost_per_million=self.config.cached_input_cost_per_million,
-            output_cost_per_million=self.config.output_cost_per_million,
+            model=selected_model,
+            validator=False,
         )
         return ExtractionResult.model_validate(data)
 
-    def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult) -> ValidationResult:
+    def validate(
+        self,
+        article_id: str,
+        paper_context: str,
+        extraction: ExtractionResult,
+        *,
+        model: str | None = None,
+    ) -> ValidationResult:
+        selected_model = model or self.config.validator_model
         prompt = "\n\n".join(
             [
                 extraction_form_prompt(),
@@ -240,7 +269,7 @@ class DualAgentExtractor:
         )
         response = _create_response(
             self.client,
-            model=self.config.validator_model,
+            model=selected_model,
             input=[
                 {"role": "system", "content": VALIDATOR_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -259,10 +288,8 @@ class DualAgentExtractor:
         self._record_usage(
             response,
             step="extraction_validation",
-            model=self.config.validator_model,
-            input_cost_per_million=self.config.validator_input_cost_per_million,
-            cached_input_cost_per_million=self.config.validator_cached_input_cost_per_million,
-            output_cost_per_million=self.config.validator_output_cost_per_million,
+            model=selected_model,
+            validator=True,
         )
         return ValidationResult.model_validate(data)
 
@@ -272,10 +299,12 @@ class DualAgentExtractor:
         *,
         step: str,
         model: str,
-        input_cost_per_million: float | None,
-        cached_input_cost_per_million: float | None,
-        output_cost_per_million: float | None,
+        validator: bool,
     ) -> None:
+        input_cost_per_million, cached_input_cost_per_million, output_cost_per_million = self.config.costs_for_model(
+            model,
+            validator=validator,
+        )
         usage = _response_usage(
             response,
             step=step,
