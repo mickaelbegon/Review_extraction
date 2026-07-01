@@ -8,4 +8,5 @@ venv/
 .env
 outputs/
 pdf_input/
+comparison_inputs/
 *.egg-info/
