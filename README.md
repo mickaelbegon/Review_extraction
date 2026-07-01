@@ -238,55 +238,91 @@ Puis téléverser un PDF:
 curl -X POST "http://127.0.0.1:8000/extract" -F "file=@paper.pdf" -F "output_dir=outputs"
 ```
 
-## Architecture des agents
+## Schemas d'architecture
+
+### Flux global
 
 ```mermaid
 flowchart TD
-    A["PDF full paper"] --> B["Extraction locale du texte par page"]
-    B --> C["Selection ciblee des passages pertinents"]
-
-    C --> D["Agent 1: Screener"]
-    D --> E["Decision inclusion/exclusion + preuves"]
-
-    C --> F["Agent 2: Validateur screening"]
-    E --> F
-    F --> G["Reconciliation screening"]
-
-    G --> H{"Article inclus sans review_required ?"}
-
-    H -- "Non" --> I["Stop extraction detaillee"]
-    I --> J["JSON + Excel + preuves screening"]
-
-    H -- "Oui" --> K["Selection ciblee methodologie"]
-
-    K --> L["Agent 1: Extracteur"]
-    L --> M["Reponses aux questions + confiance + citations"]
-
-    K --> N["Agent 2: Validateur extraction"]
-    M --> N
-    N --> O["Reconciliation item par item"]
-
-    O --> P["Reponse finale"]
-    P --> Q["Score de confiance final"]
-    P --> R["review_required si divergence/faible preuve"]
-    P --> S["JSON, Excel, PDF surligne, usage tokens/couts"]
+    A["PDF full papers<br/>pdf_input ou export Covidence"] --> B["Extraction locale du texte<br/>page par page"]
+    B --> C["Construction de contextes cibles<br/>screening / extraction / validation"]
+    C --> D["Screening inclusion-exclusion"]
+    D --> E{"Decision finale<br/>include sans review_required ?"}
+    E -- "Non" --> F["Arret de l'extraction detaillee"]
+    F --> G["Sorties screening<br/>JSON, CSV/XLSX, PDF surligne"]
+    E -- "Oui" --> H["Extraction methodologique"]
+    H --> I["Validation independante"]
+    I --> J["Reconciliation deterministe"]
+    J --> K["Sorties finales<br/>article.json, summary.csv, summary.xlsx"]
+    J --> L["PDF surligne<br/>preuves retrouvees"]
+    J --> M["Usage tokens + couts<br/>par etape et par article"]
 ```
 
-Le premier agent produit la decision ou l'extraction initiale a partir de passages cibles. Le second agent recoit cette sortie et un contexte cible souvent plus large, puis audite les preuves comme validateur independant. La reconciliation est deterministe: accord fort et preuves presentes augmente la confiance; divergence, confiance basse ou preuves insuffisantes declenche `review_required`.
+### Cooperation des agents
 
-## Architecture simplifiee
+```mermaid
+sequenceDiagram
+    participant P as Pipeline
+    participant A1 as Agent principal
+    participant A2 as Agent validateur
+    participant R as Reconciliation
+    participant H as Humain
+
+    P->>A1: Lire le contexte cible et proposer une decision/reponse
+    A1-->>P: Reponse structuree + preuves + confiance
+    P->>A2: Auditer la reponse avec un contexte cible elargi
+    A2-->>P: Accord, correction ou insuffisance de preuve
+    P->>R: Comparer reponse initiale et audit
+    R-->>P: Reponse finale + confidence + review_required
+    alt Divergence, preuve faible ou incertitude
+        P->>H: Marquer pour revision humaine
+    else Accord avec preuve solide
+        P-->>P: Continuer automatiquement
+    end
+```
+
+Le second agent ne sert pas a reformuler le premier: il audite la reponse, cherche les preuves manquantes et peut corriger l'item. La reconciliation reste volontairement simple et tracable: accord + preuve augmente la confiance; divergence, faible confiance ou preuve insuffisante declenche `review_required`.
+
+### Routage hybride des modeles
 
 ```mermaid
 flowchart TD
-    A["PDF"] --> B["Extraction texte + pages"]
-    B --> C["Agent extracteur"]
-    B --> D["Agent validateur indépendant"]
-    C --> E["Réponses initiales"]
-    D --> F["Audit item par item"]
-    E --> G["Fusion + arbitrage léger"]
-    F --> G
-    G --> H["JSON final + confidence + review_required"]
-    G --> I["PDF surligné"]
+    A["Article PDF"] --> B["Screening gpt-5.4"]
+    B --> C["Validation screening gpt-5.4"]
+    C --> D{"Screening clair ?"}
+
+    D -- "Non: uncertain ou review_required" --> E["Relire le screening<br/>gpt-5.5 + contexte complet"]
+    E --> F["Validation screening<br/>gpt-5.5"]
+    F --> G{"Decision finale include ?"}
+
+    D -- "Oui" --> G
+    G -- "Non" --> H["Stop extraction<br/>conserver screening + preuves"]
+    G -- "Oui" --> I["Extraction gpt-5.4"]
+    I --> J["Validation extraction gpt-5.4"]
+    J --> K{"Extraction fiable ?"}
+    K -- "Oui" --> L["Resultat final automatique"]
+    K -- "Non: divergence, preuve faible<br/>ou review_required" --> M["Extraction gpt-5.5"]
+    M --> N["Validation extraction gpt-5.5"]
+    N --> O["Reconciliation finale"]
+    O --> P["Resultat final ou revision humaine"]
 ```
 
-Le validateur reçoit les passages et les réponses de l'extracteur, mais doit refaire l'analyse comme critique indépendant. Une révision humaine est exigée si les agents divergent, si la confiance est basse ou si les preuves sont insuffisantes.
+Cette strategie garde `gpt-5.4` comme modele de travail pour limiter les couts, puis reserve `gpt-5.5` aux articles incertains, complexes ou divergents.
+
+### Sorties, couts et reprise
+
+```mermaid
+flowchart LR
+    A["Appels OpenAI"] --> B["usage tokens<br/>input, cached input, output"]
+    B --> C["Estimation cout USD<br/>prix modele + taxes"]
+    C --> D["article.json"]
+    C --> E["summary.csv"]
+    C --> F["summary.xlsx<br/>feuille Usage"]
+
+    D --> G{"Relance du pipeline"}
+    G -- "article.json existe" --> H["Reutiliser sans appel OpenAI"]
+    G -- "seul .screening.json existe" --> I["Reprendre apres screening"]
+    G -- "--force" --> J["Refaire les appels OpenAI"]
+```
+
+Les fichiers JSON sont la source de verite locale. Ils permettent de regenerer les exports et de reprendre une analyse sans repayer les appels deja termines.
