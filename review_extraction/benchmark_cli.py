@@ -109,7 +109,9 @@ def _load_existing_candidate_results(model_dir: Path) -> list[ArticleResult]:
     for json_path in sorted(model_dir.glob("*.json")):
         if json_path.name.endswith(".screening.json") or json_path.name in {"index.json"}:
             continue
-        results.append(ArticleResult.model_validate_json(json_path.read_text(encoding="utf-8")))
+        result = ArticleResult.model_validate_json(json_path.read_text(encoding="utf-8"))
+        result.article_id = json_path.stem
+        results.append(result)
     return results
 
 

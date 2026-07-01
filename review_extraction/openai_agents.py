@@ -138,7 +138,7 @@ class DualAgentExtractor:
             },
         )
         data = _response_json(response)
-        data["article_id"] = data.get("article_id") or article_id
+        data["article_id"] = article_id
         self._record_usage(
             response,
             step="screening",
@@ -181,7 +181,7 @@ class DualAgentExtractor:
             },
         )
         data = _response_json(response)
-        data["article_id"] = data.get("article_id") or article_id
+        data["article_id"] = article_id
         self._record_usage(
             response,
             step="screening_validation",
@@ -217,7 +217,7 @@ class DualAgentExtractor:
             },
         )
         data = _response_json(response)
-        data["article_id"] = data.get("article_id") or article_id
+        data["article_id"] = article_id
         self._record_usage(
             response,
             step="extraction",
@@ -255,7 +255,7 @@ class DualAgentExtractor:
             },
         )
         data = _response_json(response)
-        data["article_id"] = data.get("article_id") or article_id
+        data["article_id"] = article_id
         self._record_usage(
             response,
             step="extraction_validation",

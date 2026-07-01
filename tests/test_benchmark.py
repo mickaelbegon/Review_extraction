@@ -6,6 +6,7 @@ from pathlib import Path
 from review_extraction.benchmark import (
     compare_article,
     compare_model_results,
+    load_reference_results,
     safe_model_dir_name,
     summarize_benchmarks,
     write_benchmark_reports,
@@ -108,6 +109,17 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue((out_dir / "benchmark_articles.csv").exists())
             self.assertTrue((out_dir / "benchmark_disagreements.csv").exists())
             self.assertTrue((out_dir / "benchmark.xlsx").exists())
+
+    def test_load_reference_results_uses_filename_as_stable_article_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp)
+            changed = article("model_changed_id", answer="yes")
+            (out_dir / "paper.json").write_text(changed.model_dump_json(indent=2), encoding="utf-8")
+
+            loaded = load_reference_results(out_dir)
+
+            self.assertIn("paper", loaded)
+            self.assertEqual(loaded["paper"].article_id, "paper")
 
     def test_safe_model_dir_name_removes_path_unsafe_characters(self) -> None:
         self.assertEqual(safe_model_dir_name("gpt-5.4 mini/test"), "gpt-5.4_mini_test")

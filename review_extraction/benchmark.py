@@ -22,6 +22,7 @@ def load_reference_results(reference_dir: Path) -> dict[str, ArticleResult]:
         if json_path.name.endswith(".screening.json") or json_path.name in {"index.json"}:
             continue
         result = ArticleResult.model_validate_json(json_path.read_text(encoding="utf-8"))
+        result.article_id = json_path.stem
         results[result.article_id] = result
     return results
 
