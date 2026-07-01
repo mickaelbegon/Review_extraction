@@ -234,14 +234,16 @@ def _format_usage(usage: TokenUsage) -> str:
     cost = f", cost=${usage.estimated_cost_usd:.6f}" if usage.estimated_cost_usd is not None else ""
     return (
         f"usage {usage.step}: model={usage.model}, "
-        f"input={usage.input_tokens}, output={usage.output_tokens}, total={usage.total_tokens}{cost}"
+        f"input={usage.input_tokens}, cached_input={usage.cached_input_tokens}, "
+        f"output={usage.output_tokens}, total={usage.total_tokens}{cost}"
     )
 
 
 def _usage_summary(usages: list[TokenUsage]) -> str:
     input_tokens = sum(usage.input_tokens for usage in usages)
+    cached_input_tokens = sum(usage.cached_input_tokens for usage in usages)
     output_tokens = sum(usage.output_tokens for usage in usages)
     total_tokens = sum(usage.total_tokens for usage in usages)
     costs = [usage.estimated_cost_usd for usage in usages if usage.estimated_cost_usd is not None]
     cost = f", cost=${sum(costs):.6f}" if costs else ""
-    return f"input={input_tokens}, output={output_tokens}, total={total_tokens}{cost}"
+    return f"input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}{cost}"

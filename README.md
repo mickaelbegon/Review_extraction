@@ -46,25 +46,28 @@ La console affiche le volume envoye:
 Chaque reponse OpenAI contient normalement un compteur `usage`. Le pipeline l'enregistre dans le JSON final de l'article et l'affiche dans la console:
 
 ```text
-[1/12] article.pdf: usage screening: model=gpt-5.5, input=18432, output=912, total=19344, cost=$0.119520
-[1/12] article.pdf: article usage: input=62100, output=8420, total=70520, cost=$0.587300
+[1/12] article.pdf: usage screening: model=gpt-5.5, input=18432, cached_input=1024, output=912, total=19344, cost=$0.119520
+[1/12] article.pdf: article usage: input=62100, cached_input=2048, output=8420, total=70520, cost=$0.587300
 ```
 
 Les exports ajoutent:
 
-- `summary.csv`: colonnes `usage_input_tokens`, `usage_output_tokens`, `usage_total_tokens`, `usage_estimated_cost_usd`;
+- `summary.csv`: colonnes `usage_input_tokens`, `usage_cached_input_tokens`, `usage_output_tokens`, `usage_total_tokens`, `usage_estimated_cost_usd`;
 - `summary.xlsx`: feuille `Usage` avec une ligne par etape (`screening`, `screening_validation`, `extraction`, `extraction_validation`).
 
-Pour calculer les couts, ajoute les tarifs actuels du modele dans `.env` en USD par 1M tokens:
+Les couts sont calcules automatiquement a partir du modele utilise (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, etc.) avec les tarifs OpenAI Standard / Short context et les taxes. Par defaut, le taux de taxe est celui du Quebec: 14.975%.
 
 ```text
-OPENAI_INPUT_COST_PER_1M=
-OPENAI_OUTPUT_COST_PER_1M=
-OPENAI_VALIDATOR_INPUT_COST_PER_1M=
-OPENAI_VALIDATOR_OUTPUT_COST_PER_1M=
+OPENAI_TAX_RATE=0.14975
 ```
 
-Si ces variables sont vides, le pipeline rapporte les tokens seulement.
+Les variables `OPENAI_*_COST_PER_1M` existent encore comme overrides optionnels si les prix changent, mais elles peuvent rester vides.
+
+Pour voir la table de prix utilisee par le code:
+
+```powershell
+review-pricing
+```
 
 ## Installation
 
@@ -136,6 +139,8 @@ Les JSON actuels dans `outputs` peuvent servir de reference 5.5 pour comparer de
 ```powershell
 review-model-benchmark .\pdf_input --reference-out .\outputs --out .\benchmark_outputs --models gpt-5.4 gpt-5.4-mini
 ```
+
+Le benchmark choisit automatiquement les bons tarifs par modele et applique `OPENAI_TAX_RATE`.
 
 Pour tester d'abord sur quelques articles:
 

@@ -171,7 +171,7 @@ class ExportTests(unittest.TestCase):
             self.assertEqual(workbook["Review required"]["A2"].value, "paper")
             self.assertEqual(workbook["Usage"]["C2"].value, "screening")
             self.assertEqual(workbook["Usage"]["E2"].value, 500)
-            self.assertEqual(workbook["Usage"]["J2"].value, 0.0006)
+            self.assertEqual(workbook["Usage"]["L2"].value, 0.0006)
 
 
 if __name__ == "__main__":

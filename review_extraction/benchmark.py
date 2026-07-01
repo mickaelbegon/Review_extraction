@@ -102,6 +102,7 @@ def compare_article(
 
     compared_items = len(item_ids)
     input_tokens = sum(usage.input_tokens for usage in candidate.usage)
+    cached_input_tokens = sum(usage.cached_input_tokens for usage in candidate.usage)
     output_tokens = sum(usage.output_tokens for usage in candidate.usage)
     total_tokens = sum(usage.total_tokens for usage in candidate.usage)
     costs = [usage.estimated_cost_usd for usage in candidate.usage if usage.estimated_cost_usd is not None]
@@ -121,6 +122,7 @@ def compare_article(
         "answer_agreement_rate": round(matched_items / compared_items, 4) if compared_items else 1.0,
         "mean_confidence_abs_diff": round(sum(confidence_diffs) / len(confidence_diffs), 4) if confidence_diffs else "",
         "candidate_input_tokens": input_tokens,
+        "candidate_cached_input_tokens": cached_input_tokens,
         "candidate_output_tokens": output_tokens,
         "candidate_total_tokens": total_tokens,
         "candidate_estimated_cost_usd": round(sum(costs), 6) if costs else "",
@@ -159,6 +161,7 @@ def summarize_benchmarks(benchmarks: list[ModelBenchmark]) -> list[dict[str, Any
                 "answer_agreement_rate": round(matching_items / compared_items, 4) if compared_items else 1.0,
                 "mean_confidence_abs_diff": round(sum(confidence_diffs) / len(confidence_diffs), 4) if confidence_diffs else "",
                 "candidate_input_tokens": sum(int(row["candidate_input_tokens"]) for row in article_rows),
+                "candidate_cached_input_tokens": sum(int(row["candidate_cached_input_tokens"]) for row in article_rows),
                 "candidate_output_tokens": sum(int(row["candidate_output_tokens"]) for row in article_rows),
                 "candidate_total_tokens": sum(int(row["candidate_total_tokens"]) for row in article_rows),
                 "candidate_estimated_cost_usd": round(sum(total_costs), 6) if total_costs else "",
@@ -195,6 +198,7 @@ def _empty_model_summary(model: str) -> dict[str, Any]:
         "answer_agreement_rate": "",
         "mean_confidence_abs_diff": "",
         "candidate_input_tokens": 0,
+        "candidate_cached_input_tokens": 0,
         "candidate_output_tokens": 0,
         "candidate_total_tokens": 0,
         "candidate_estimated_cost_usd": "",

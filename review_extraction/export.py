@@ -20,6 +20,7 @@ SUMMARY_COLUMNS = [
     "evidence_pages",
     "evidence_quotes",
     "usage_input_tokens",
+    "usage_cached_input_tokens",
     "usage_output_tokens",
     "usage_total_tokens",
     "usage_estimated_cost_usd",
@@ -43,9 +44,11 @@ USAGE_COLUMNS = [
     "step",
     "model",
     "input_tokens",
+    "cached_input_tokens",
     "output_tokens",
     "total_tokens",
     "input_cost_per_million",
+    "cached_input_cost_per_million",
     "output_cost_per_million",
     "estimated_cost_usd",
 ]
@@ -154,9 +157,11 @@ def usage_rows(results: list[ArticleResult]) -> list[dict[str, Any]]:
                     "step": usage.step,
                     "model": usage.model,
                     "input_tokens": usage.input_tokens,
+                    "cached_input_tokens": usage.cached_input_tokens,
                     "output_tokens": usage.output_tokens,
                     "total_tokens": usage.total_tokens,
                     "input_cost_per_million": usage.input_cost_per_million or "",
+                    "cached_input_cost_per_million": usage.cached_input_cost_per_million or "",
                     "output_cost_per_million": usage.output_cost_per_million or "",
                     "estimated_cost_usd": usage.estimated_cost_usd if usage.estimated_cost_usd is not None else "",
                 }
@@ -180,6 +185,7 @@ def _summary_base_row(result: ArticleResult) -> dict[str, Any]:
         "evidence_pages": "",
         "evidence_quotes": "",
         "usage_input_tokens": usage["input_tokens"],
+        "usage_cached_input_tokens": usage["cached_input_tokens"],
         "usage_output_tokens": usage["output_tokens"],
         "usage_total_tokens": usage["total_tokens"],
         "usage_estimated_cost_usd": usage["estimated_cost_usd"],
@@ -222,13 +228,16 @@ def _style_sheet(sheet: Any, columns: list[str], get_column_letter: Any, Font: A
         "evidence_pages": 16,
         "evidence_quotes": 80,
         "usage_input_tokens": 18,
+        "usage_cached_input_tokens": 22,
         "usage_output_tokens": 18,
         "usage_total_tokens": 18,
         "usage_estimated_cost_usd": 22,
         "input_tokens": 16,
+        "cached_input_tokens": 20,
         "output_tokens": 16,
         "total_tokens": 16,
         "input_cost_per_million": 22,
+        "cached_input_cost_per_million": 28,
         "output_cost_per_million": 22,
         "estimated_cost_usd": 18,
     }
@@ -275,11 +284,13 @@ def _stringify_answer(value: str | list[str]) -> str:
 
 def _usage_totals(result: ArticleResult) -> dict[str, Any]:
     input_tokens = sum(usage.input_tokens for usage in result.usage)
+    cached_input_tokens = sum(usage.cached_input_tokens for usage in result.usage)
     output_tokens = sum(usage.output_tokens for usage in result.usage)
     total_tokens = sum(usage.total_tokens for usage in result.usage)
     costs = [usage.estimated_cost_usd for usage in result.usage if usage.estimated_cost_usd is not None]
     return {
         "input_tokens": input_tokens,
+        "cached_input_tokens": cached_input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "estimated_cost_usd": round(sum(costs), 6) if costs else "",

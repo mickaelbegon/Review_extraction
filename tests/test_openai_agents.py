@@ -6,8 +6,9 @@ from review_extraction.openai_agents import DualAgentExtractor, OpenAIConfig, Op
 
 
 class FakeResponses:
-    def __init__(self) -> None:
+    def __init__(self, cached_tokens: int = 0) -> None:
         self.calls = []
+        self.cached_tokens = cached_tokens
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
@@ -86,13 +87,18 @@ class FakeResponses:
             raise AssertionError(f"Unexpected schema: {schema_name}")
         return SimpleNamespace(
             output_text=json.dumps(payload),
-            usage=SimpleNamespace(input_tokens=1000, output_tokens=100, total_tokens=1100),
+            usage=SimpleNamespace(
+                input_tokens=1000,
+                output_tokens=100,
+                total_tokens=1100,
+                input_tokens_details=SimpleNamespace(cached_tokens=self.cached_tokens),
+            ),
         )
 
 
 class FakeClient:
-    def __init__(self) -> None:
-        self.responses = FakeResponses()
+    def __init__(self, cached_tokens: int = 0) -> None:
+        self.responses = FakeResponses(cached_tokens=cached_tokens)
 
 
 class FakeQuotaError(Exception):
@@ -151,6 +157,22 @@ class OpenAIAgentTests(unittest.TestCase):
         self.assertEqual(agents.usage_events[0].estimated_cost_usd, 0.0012)
         self.assertEqual(agents.usage_events[1].model, "validate-model")
         self.assertEqual(agents.usage_events[1].estimated_cost_usd, 0.0034)
+
+    def test_builtin_pricing_is_selected_from_model_name(self) -> None:
+        client = FakeClient(cached_tokens=100)
+        agents = DualAgentExtractor(
+            client=client,
+            config=OpenAIConfig(model="gpt-5.4-mini", validator_model="gpt-5.4-mini"),
+        )
+
+        agents.screen("paper", "[PAGE 1]\nParticipants were adults.")
+
+        usage = agents.usage_events[0]
+        self.assertEqual(usage.cached_input_tokens, 100)
+        self.assertEqual(usage.input_cost_per_million, 0.8623125)
+        self.assertEqual(usage.cached_input_cost_per_million, 0.08623125)
+        self.assertEqual(usage.output_cost_per_million, 5.173875)
+        self.assertEqual(usage.estimated_cost_usd, 0.001302)
 
     def test_insufficient_quota_raises_user_facing_error(self) -> None:
         agents = DualAgentExtractor(client=QuotaClient(), config=OpenAIConfig())
