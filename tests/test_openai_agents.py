@@ -69,6 +69,38 @@ class FakeResponses:
                     }
                 ],
             }
+        elif schema_name == "extraction_plan_result":
+            payload = {
+                "article_id": "paper",
+                "themes": [
+                    {
+                        "theme_id": "measurement_methods",
+                        "status": "present",
+                        "confidence": 0.9,
+                        "evidence": [
+                            {
+                                "page": 1,
+                                "quote": "Thorax markers were used.",
+                                "relevance": "Measurement method and thorax segment are described.",
+                            }
+                        ],
+                        "rationale_short": "Measurement method is reported.",
+                    },
+                    {
+                        "theme_id": "segment.thorax",
+                        "status": "present",
+                        "confidence": 0.9,
+                        "evidence": [
+                            {
+                                "page": 1,
+                                "quote": "Thorax markers were used.",
+                                "relevance": "Thorax segment is described.",
+                            }
+                        ],
+                        "rationale_short": "Thorax segment is reported.",
+                    },
+                ],
+            }
         elif schema_name == "validation_result":
             payload = {
                 "article_id": "paper",
@@ -135,23 +167,29 @@ class OpenAIAgentTests(unittest.TestCase):
 
         screening = agents.screen("paper", "[PAGE 1]\nParticipants were adults.")
         screening_validation = agents.validate_screening("paper", "[PAGE 1]\nParticipants were adults.", screening)
-        extraction = agents.extract("paper", "[PAGE 1]\nThorax markers were used.")
-        validation = agents.validate("paper", "[PAGE 1]\nThorax markers were used.", extraction)
+        extraction_plan = agents.plan_extraction("paper", "[PAGE 1]\nThorax markers were used.")
+        extraction = agents.extract("paper", "[PAGE 1]\nThorax markers were used.", item_ids=["thorax_used"])
+        validation = agents.validate("paper", "[PAGE 1]\nThorax markers were used.", extraction, item_ids=["thorax_used"])
 
         self.assertEqual(screening.overall_decision, "include")
         self.assertEqual(screening_validation.overall_status, "agree")
+        self.assertEqual(extraction_plan.themes[0].theme_id, "measurement_methods")
         self.assertEqual(extraction.article_id, "paper")
         self.assertEqual(extraction.answers[0].item_id, "thorax_used")
         self.assertEqual(validation.decisions[0].status, "agree")
         self.assertEqual(client.responses.calls[0]["model"], "extract-model")
         self.assertEqual(client.responses.calls[1]["model"], "validate-model")
         self.assertEqual(client.responses.calls[2]["model"], "extract-model")
-        self.assertEqual(client.responses.calls[3]["model"], "validate-model")
+        self.assertEqual(client.responses.calls[3]["model"], "extract-model")
+        self.assertEqual(client.responses.calls[4]["model"], "validate-model")
         self.assertTrue(all(call["text"]["format"]["strict"] for call in client.responses.calls))
         self.assertIn("Paper text follows", client.responses.calls[0]["input"][1]["content"])
         self.assertIn("Screener output to audit", client.responses.calls[1]["input"][1]["content"])
-        self.assertIn("Extractor output to audit", client.responses.calls[3]["input"][1]["content"])
-        self.assertEqual([event.step for event in agents.usage_events], ["screening", "screening_validation", "extraction", "extraction_validation"])
+        self.assertIn("Extractor output to audit", client.responses.calls[4]["input"][1]["content"])
+        self.assertEqual(
+            [event.step for event in agents.usage_events],
+            ["screening", "screening_validation", "extraction_planning", "extraction", "extraction_validation"],
+        )
         self.assertEqual(agents.usage_events[0].input_tokens, 1000)
         self.assertEqual(agents.usage_events[0].output_tokens, 100)
         self.assertEqual(agents.usage_events[0].estimated_cost_usd, 0.0012)

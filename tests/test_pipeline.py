@@ -10,6 +10,8 @@ from review_extraction.models import (
     Evidence,
     ExtractedAnswer,
     ExtractionResult,
+    ExtractionPlanResult,
+    ExtractionThemeDecision,
     ScreeningCriterionAnswer,
     ScreeningResult,
     ScreeningValidationDecision,
@@ -42,6 +44,51 @@ class RecordingAgents:
         self.extraction_contexts: list[str] = []
         self.validation_contexts: list[str] = []
         self.usage_events: list[TokenUsage] = []
+
+    def plan_extraction(self, article_id: str, paper_context: str) -> ExtractionPlanResult:
+        self.usage_events.append(
+            TokenUsage(step="extraction_planning", model="model", input_tokens=80, output_tokens=8, total_tokens=88)
+        )
+        return ExtractionPlanResult(
+            article_id=article_id,
+            themes=[
+                ExtractionThemeDecision(
+                    theme_id="measurement_methods",
+                    status="present",
+                    confidence=0.9,
+                    evidence=[Evidence(page=2, quote="Motion capture was used.", relevance="measurement")],
+                    rationale_short="Measurement method is reported.",
+                ),
+                ExtractionThemeDecision(
+                    theme_id="segment.thorax",
+                    status="present",
+                    confidence=0.9,
+                    evidence=[Evidence(page=2, quote="Thorax coordinate system.", relevance="thorax")],
+                    rationale_short="Thorax is reported.",
+                ),
+                ExtractionThemeDecision(
+                    theme_id="segment.clavicle",
+                    status="absent",
+                    confidence=0.85,
+                    evidence=[],
+                    rationale_short="Clavicle is not reported.",
+                ),
+                ExtractionThemeDecision(
+                    theme_id="segment.scapula",
+                    status="absent",
+                    confidence=0.85,
+                    evidence=[],
+                    rationale_short="Scapula is not reported.",
+                ),
+                ExtractionThemeDecision(
+                    theme_id="segment.humerus",
+                    status="absent",
+                    confidence=0.85,
+                    evidence=[],
+                    rationale_short="Humerus is not reported.",
+                ),
+            ],
+        )
 
     def screen(self, article_id: str, paper_context: str) -> ScreeningResult:
         self.screen_contexts.append(paper_context)
@@ -94,8 +141,10 @@ class RecordingAgents:
             ],
         )
 
-    def extract(self, article_id: str, paper_context: str) -> ExtractionResult:
+    def extract(self, article_id: str, paper_context: str, *, item_ids=None) -> ExtractionResult:
         self.extraction_contexts.append(paper_context)
+        if item_ids is not None:
+            self.extract_item_ids = list(item_ids)
         self.usage_events.append(
             TokenUsage(step="extraction", model="model", input_tokens=200, output_tokens=20, total_tokens=220)
         )
@@ -119,7 +168,7 @@ class RecordingAgents:
             ],
         )
 
-    def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult) -> ValidationResult:
+    def validate(self, article_id: str, paper_context: str, extraction: ExtractionResult, *, item_ids=None) -> ValidationResult:
         self.validation_contexts.append(paper_context)
         self.usage_events.append(
             TokenUsage(step="extraction_validation", model="validator", input_tokens=240, output_tokens=24, total_tokens=264)
@@ -148,6 +197,28 @@ class EscalationAgents(RecordingAgents):
         self.config = SimpleNamespace(
             fallback_model="gpt-5.5",
             fallback_validator_model="gpt-5.5",
+        )
+
+    def plan_extraction(self, article_id: str, paper_context: str) -> ExtractionPlanResult:
+        self.usage_events.append(TokenUsage(step="extraction_planning", model="gpt-5.4", total_tokens=1))
+        return ExtractionPlanResult(
+            article_id=article_id,
+            themes=[
+                ExtractionThemeDecision(
+                    theme_id="measurement_methods",
+                    status="present",
+                    confidence=0.9,
+                    evidence=[],
+                    rationale_short="Measurement method is present.",
+                ),
+                ExtractionThemeDecision(
+                    theme_id="segment.thorax",
+                    status="present",
+                    confidence=0.9,
+                    evidence=[],
+                    rationale_short="Thorax is present.",
+                ),
+            ],
         )
 
     def screen(self, article_id: str, paper_context: str, *, model: str | None = None) -> ScreeningResult:
@@ -200,7 +271,7 @@ class EscalationAgents(RecordingAgents):
             ],
         )
 
-    def extract(self, article_id: str, paper_context: str, *, model: str | None = None) -> ExtractionResult:
+    def extract(self, article_id: str, paper_context: str, *, model: str | None = None, item_ids=None) -> ExtractionResult:
         self.extract_models.append(model)
         self.extraction_contexts.append(paper_context)
         self.usage_events.append(TokenUsage(step="extraction", model=model or "gpt-5.4", total_tokens=1))
@@ -226,6 +297,7 @@ class EscalationAgents(RecordingAgents):
         extraction: ExtractionResult,
         *,
         model: str | None = None,
+        item_ids=None,
     ) -> ValidationResult:
         self.validation_contexts.append(paper_context)
         self.validation_models.append(model)
@@ -392,8 +464,14 @@ class PipelineTests(unittest.TestCase):
             self.assertIn("TARGETED METHODOLOGY EXTRACTION CONTEXT", agents.validation_contexts[0])
             self.assertGreaterEqual(len(agents.screen_validation_contexts[0]), len(agents.screen_contexts[0]))
             self.assertGreaterEqual(len(agents.validation_contexts[0]), len(agents.extraction_contexts[0]))
-            self.assertEqual([usage.step for usage in result.usage], ["screening", "screening_validation", "extraction", "extraction_validation"])
-            self.assertEqual(sum(usage.total_tokens for usage in result.usage), 726)
+            self.assertEqual(
+                [usage.step for usage in result.usage],
+                ["screening", "screening_validation", "extraction_planning", "extraction", "extraction_validation"],
+            )
+            self.assertEqual(sum(usage.total_tokens for usage in result.usage), 814)
+            self.assertIn("thorax_used", agents.extract_item_ids)
+            self.assertNotIn("clavicle_used", agents.extract_item_ids)
+            self.assertTrue(any(answer.item_id == "clavicle_used" and answer.final_answer == "no" for answer in result.answers))
             self.assertIsNotNone(result.processing_seconds)
             self.assertTrue(all(usage.elapsed_seconds is not None for usage in result.usage))
 
@@ -425,6 +503,47 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(agents.screen_models, [None, "gpt-5.5"])
             self.assertIn("gpt-5.5", agents.validation_models)
             self.assertEqual(agents.extract_models, [None, "gpt-5.5"])
+
+    def test_process_many_workers_use_separate_agent_instances(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "pdf_input"
+            out_dir = root / "outputs"
+            input_dir.mkdir()
+            for name in ["a_paper.pdf", "b_paper.pdf"]:
+                (input_dir / name).write_bytes(b"%PDF-1.4\n")
+            fake_pdf_ingest = ModuleType("review_extraction.pdf_ingest")
+            fake_pdf_ingest.extract_pdf_text = lambda path: [
+                SimpleNamespace(page=1, text="Abstract. Healthy human participants completed shoulder tasks."),
+                SimpleNamespace(page=2, text="Methods. Thorax coordinate system was used."),
+            ]
+            original_pdf_ingest = sys.modules.get("review_extraction.pdf_ingest")
+            sys.modules["review_extraction.pdf_ingest"] = fake_pdf_ingest
+            created_agents: list[RecordingAgents] = []
+
+            def factory() -> RecordingAgents:
+                agent = RecordingAgents()
+                created_agents.append(agent)
+                return agent
+
+            try:
+                results = process_many(
+                    input_dir,
+                    out_dir,
+                    agents=RecordingAgents(),
+                    write_highlights=False,
+                    workers=2,
+                    agent_factory=factory,
+                )
+            finally:
+                if original_pdf_ingest is None:
+                    sys.modules.pop("review_extraction.pdf_ingest", None)
+                else:
+                    sys.modules["review_extraction.pdf_ingest"] = original_pdf_ingest
+
+            self.assertEqual([result.article_id for result in results], ["a_paper", "b_paper"])
+            self.assertEqual(len(created_agents), 2)
+            self.assertTrue(all(agent.usage_events for agent in created_agents))
 
 
 if __name__ == "__main__":

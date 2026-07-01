@@ -142,7 +142,8 @@ def build_extraction_items() -> list[ExtractionItem]:
 EXTRACTION_ITEMS = build_extraction_items()
 
 
-def extraction_form_prompt() -> str:
+def extraction_form_prompt(item_ids: set[str] | list[str] | None = None) -> str:
+    selected_item_ids = set(item_ids) if item_ids is not None else None
     lines = [
         "Use this systematic-review extraction form.",
         "Return one answer per item. Use only allowed answer identifiers.",
@@ -150,7 +151,26 @@ def extraction_form_prompt() -> str:
         "",
     ]
     for item in EXTRACTION_ITEMS:
+        if selected_item_ids is not None and item.id not in selected_item_ids:
+            continue
         lines.append(f"- {item.id}: {item.question}")
         lines.append(f"  Allowed answers: {', '.join(item.allowed_answers)}")
         lines.append(f"  Guidance: {item.guidance}")
+    return "\n".join(lines)
+
+
+def extraction_plan_prompt() -> str:
+    lines = [
+        "Decide which extraction blocks are relevant for this paper before detailed extraction.",
+        "Return one decision for every theme listed below.",
+        "Use status 'present' when the theme is clearly reported, 'absent' when it is clearly not reported, and 'unclear' when evidence is ambiguous or incomplete.",
+        "When uncertain, prefer 'unclear' so the detailed extractor will inspect that block.",
+        "",
+        "Themes:",
+        "- measurement_methods: any measurement/capture method used by the study",
+    ]
+    for segment in SEGMENTS:
+        lines.append(f"- segment.{segment}: whether the {segment} segment coordinate system or kinematics are considered")
+    for joint_id, label in JOINTS.items():
+        lines.append(f"- joint.{joint_id}: whether joint kinematics are reported for {label}")
     return "\n".join(lines)

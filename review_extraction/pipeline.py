@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
-from time import perf_counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from time import perf_counter
 from typing import Callable
 
+from .adaptive_extraction import automatic_absent_answers, item_ids_for_plan, merge_adaptive_answers
 from .export import write_csv_summary, write_xlsx_summary
 from .models import ArticleResult, FinalScreeningResult, TokenUsage
 from .openai_agents import DualAgentExtractor
@@ -122,15 +124,36 @@ def process_pdf(
     extraction_context = build_extraction_context(pages)
     extraction_validation_context = build_extraction_context(pages, max_chars=70_000, target_fraction=0.90)
     _emit(progress, f"{prefix}target extraction context: {_context_report(extraction_context)}")
+    _emit(progress, f"{prefix}plan adaptive extraction blocks")
+    usage_start = _usage_marker(agents)
+    step_started = perf_counter()
+    extraction_plan = agents.plan_extraction(article_id=article_id, paper_context=extraction_context.text)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
+    selected_item_ids = item_ids_for_plan(extraction_plan)
+    automatic_answers = automatic_absent_answers(extraction_plan)
+    _emit(
+        progress,
+        f"{prefix}adaptive extraction: {len(selected_item_ids)} item(s) sent to AI, "
+        f"{len(automatic_answers)} item(s) filled automatically",
+    )
     _emit(progress, f"{prefix}extract methodological parameters from targeted context")
     usage_start = _usage_marker(agents)
     step_started = perf_counter()
-    extraction = agents.extract(article_id=article_id, paper_context=extraction_context.text)
+    extraction = agents.extract(
+        article_id=article_id,
+        paper_context=extraction_context.text,
+        item_ids=selected_item_ids,
+    )
     _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
     _emit(progress, f"{prefix}validate methodological parameters with broader targeted context")
     usage_start = _usage_marker(agents)
     step_started = perf_counter()
-    validation = agents.validate(article_id=article_id, paper_context=extraction_validation_context.text, extraction=extraction)
+    validation = agents.validate(
+        article_id=article_id,
+        paper_context=extraction_validation_context.text,
+        extraction=extraction,
+        item_ids=selected_item_ids,
+    )
     _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
     _emit(progress, f"{prefix}reconcile methodological parameters")
     result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
@@ -145,6 +168,7 @@ def process_pdf(
             article_id=article_id,
             paper_context=extraction_context.text,
             model=agents.config.fallback_model,
+            item_ids=selected_item_ids,
         )
         _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}validate escalated extraction with {agents.config.fallback_validator_model}")
@@ -155,10 +179,12 @@ def process_pdf(
             paper_context=extraction_validation_context.text,
             extraction=extraction,
             model=agents.config.fallback_validator_model,
+            item_ids=selected_item_ids,
         )
         _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}reconcile escalated methodological parameters")
         result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
+    result.answers = merge_adaptive_answers(result.answers, automatic_answers)
     result.screening = final_screening
     result.usage = article_usage
     result.processing_seconds = _elapsed(article_started)
@@ -182,9 +208,13 @@ def process_many(
     write_highlights: bool = True,
     reuse_existing: bool = True,
     limit: int | None = None,
+    workers: int = 1,
+    agent_factory: Callable[[], DualAgentExtractor] | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> list[ArticleResult]:
     out_dir.mkdir(parents=True, exist_ok=True)
+    if workers < 1:
+        raise ValueError("workers must be greater than or equal to 1.")
     pdfs = [pdf for pdf in (sorted(input_path.glob("*.pdf")) if input_path.is_dir() else [input_path]) if pdf.suffix.lower() == ".pdf"]
     if limit is not None:
         if limit < 0:
@@ -192,21 +222,48 @@ def process_many(
         pdfs = pdfs[:limit]
     total = len(pdfs)
     limit_message = f" (limit={limit})" if limit is not None else ""
-    _emit(progress, f"Found {total} PDF(s) to process{limit_message}.")
-    results = []
-    for current, pdf in enumerate(pdfs, start=1):
-        results.append(
-            process_pdf(
-                pdf,
-                out_dir,
-                agents,
-                write_highlights=write_highlights,
-                reuse_existing=reuse_existing,
-                progress=progress,
-                current=current,
-                total=total,
+    worker_message = f", workers={workers}" if workers > 1 else ""
+    _emit(progress, f"Found {total} PDF(s) to process{limit_message}{worker_message}.")
+    if workers == 1:
+        results = []
+        for current, pdf in enumerate(pdfs, start=1):
+            results.append(
+                process_pdf(
+                    pdf,
+                    out_dir,
+                    agents,
+                    write_highlights=write_highlights,
+                    reuse_existing=reuse_existing,
+                    progress=progress,
+                    current=current,
+                    total=total,
+                )
             )
-        )
+    else:
+        if agent_factory is None:
+            if isinstance(agents, DualAgentExtractor):
+                agent_factory = lambda: DualAgentExtractor(config=agents.config)
+            else:
+                raise ValueError("agent_factory is required when workers > 1 with custom agents.")
+        results_by_index: list[ArticleResult | None] = [None] * total
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(
+                    process_pdf,
+                    pdf,
+                    out_dir,
+                    agent_factory(),
+                    write_highlights=write_highlights,
+                    reuse_existing=reuse_existing,
+                    progress=progress,
+                    current=current,
+                    total=total,
+                ): current - 1
+                for current, pdf in enumerate(pdfs, start=1)
+            }
+            for future in as_completed(futures):
+                results_by_index[futures[future]] = future.result()
+        results = [result for result in results_by_index if result is not None]
     _emit(progress, "write index.json")
     index_path = out_dir / "index.json"
     index_path.write_text(json.dumps([result.model_dump() for result in results], indent=2), encoding="utf-8")

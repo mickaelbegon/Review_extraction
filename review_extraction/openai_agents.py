@@ -6,11 +6,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from .form_schema import extraction_form_prompt
+from .form_schema import extraction_plan_prompt
 from .models import (
     EXTRACTION_JSON_SCHEMA,
+    EXTRACTION_PLAN_JSON_SCHEMA,
     SCREENING_JSON_SCHEMA,
     SCREENING_VALIDATION_JSON_SCHEMA,
     VALIDATION_JSON_SCHEMA,
+    ExtractionPlanResult,
     ExtractionResult,
     ScreeningResult,
     ScreeningValidationResult,
@@ -214,11 +217,53 @@ class DualAgentExtractor:
         )
         return ScreeningValidationResult.model_validate(data)
 
-    def extract(self, article_id: str, paper_context: str, *, model: str | None = None) -> ExtractionResult:
+    def plan_extraction(self, article_id: str, paper_context: str, *, model: str | None = None) -> ExtractionPlanResult:
         selected_model = model or self.config.model
         prompt = "\n\n".join(
             [
-                extraction_form_prompt(),
+                extraction_plan_prompt(),
+                "Paper text follows. Page markers are authoritative.",
+                paper_context,
+            ]
+        )
+        response = _create_response(
+            self.client,
+            model=selected_model,
+            input=[
+                {"role": "system", "content": EXTRACTOR_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "extraction_plan_result",
+                    "schema": EXTRACTION_PLAN_JSON_SCHEMA,
+                    "strict": True,
+                }
+            },
+        )
+        data = _response_json(response)
+        data["article_id"] = article_id
+        self._record_usage(
+            response,
+            step="extraction_planning",
+            model=selected_model,
+            validator=False,
+        )
+        return ExtractionPlanResult.model_validate(data)
+
+    def extract(
+        self,
+        article_id: str,
+        paper_context: str,
+        *,
+        model: str | None = None,
+        item_ids: list[str] | set[str] | None = None,
+    ) -> ExtractionResult:
+        selected_model = model or self.config.model
+        prompt = "\n\n".join(
+            [
+                extraction_form_prompt(item_ids=item_ids),
                 "Paper text follows. Page markers are authoritative.",
                 paper_context,
             ]
@@ -256,11 +301,12 @@ class DualAgentExtractor:
         extraction: ExtractionResult,
         *,
         model: str | None = None,
+        item_ids: list[str] | set[str] | None = None,
     ) -> ValidationResult:
         selected_model = model or self.config.validator_model
         prompt = "\n\n".join(
             [
-                extraction_form_prompt(),
+                extraction_form_prompt(item_ids=item_ids),
                 "Extractor output to audit:",
                 extraction.model_dump_json(indent=2),
                 "Paper text follows. Page markers are authoritative.",

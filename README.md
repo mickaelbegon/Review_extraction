@@ -6,6 +6,7 @@ Le pipeline produit:
 
 - un screening full paper inclusion/exclusion avant extraction;
 - une lecture ciblee des passages utiles pour reduire les tokens envoyes a l'API;
+- une extraction adaptative qui envoie seulement les blocs methodologiques pertinents a l'IA;
 - un JSON de screening par article;
 - un fichier Excel `summary.xlsx` avec feuilles `Summary`, `Screening`, `Extraction` et `Review required`;
 - un JSON structuré par article et par question;
@@ -101,13 +102,13 @@ Options utiles:
 ```powershell
 review-extract .\pdfs --out .\outputs --no-highlight
 review-extract .\pdfs --out .\outputs --model gpt-5.4 --validator-model gpt-5.4 --fallback-model gpt-5.5 --fallback-validator-model gpt-5.5
-review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --no-highlight
+review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --workers 2 --no-highlight
 ```
 
 Pour estimer le cout et le temps de l'approche hybride sur 10 articles sans surlignage:
 
 ```powershell
-review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --no-highlight
+review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --workers 2 --no-highlight
 ```
 
 La fin de la console donne le total et la moyenne par article:
@@ -139,6 +140,24 @@ OPENAI_FALLBACK_VALIDATOR_MODEL=gpt-5.5
 ```
 
 La console indique explicitement quand une escalade vers `gpt-5.5` est declenchee.
+
+## Extraction adaptative
+
+Avant l'extraction detaillee, le pipeline effectue une courte planification pour identifier les blocs reellement presents:
+
+- `measurement_methods`;
+- segments: `thorax`, `clavicle`, `scapula`, `humerus`;
+- articulations: `thorax_global`, `clavicle_thorax`, `scapula_clavicle`, `scapula_thorax`, `humerus_scapula`, `humerus_thorax`.
+
+Les blocs `present` ou `unclear` sont envoyes a l'extracteur et au validateur. Les blocs clairement `absent` sont remplis automatiquement avec des reponses conservatrices (`no`, `not_assessed`, `no_method_or_reference`) et restent visibles dans les exports avec `validator_status=auto_absent`.
+
+Pour accelerer plusieurs articles, utilisez:
+
+```powershell
+review-extract .\pdf_input --out .\outputs --workers 2
+```
+
+Chaque worker cree son propre agent OpenAI pour eviter de melanger les usages tokens/couts entre articles. Augmentez `--workers` progressivement si vous ne rencontrez pas de rate limits.
 
 ## Reprise sans relancer l'IA
 

@@ -52,6 +52,26 @@ class ExtractionResult(BaseModel):
     answers: list[ExtractedAnswer]
 
 
+ExtractionPlanStatus = Literal["present", "absent", "unclear"]
+
+
+class ExtractionThemeDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    theme_id: str
+    status: ExtractionPlanStatus
+    confidence: confloat(ge=0, le=1)
+    evidence: list[Evidence] = Field(default_factory=list)
+    rationale_short: str
+
+
+class ExtractionPlanResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    article_id: str
+    themes: list[ExtractionThemeDecision]
+
+
 ScreeningDecisionValue = Literal["include", "exclude", "unclear"]
 ScreeningOverallDecision = Literal["include", "exclude", "uncertain"]
 
@@ -185,4 +205,5 @@ class ArticleResult(BaseModel):
 SCREENING_JSON_SCHEMA = openai_strict_schema(ScreeningResult.model_json_schema())
 SCREENING_VALIDATION_JSON_SCHEMA = openai_strict_schema(ScreeningValidationResult.model_json_schema())
 EXTRACTION_JSON_SCHEMA = openai_strict_schema(ExtractionResult.model_json_schema())
+EXTRACTION_PLAN_JSON_SCHEMA = openai_strict_schema(ExtractionPlanResult.model_json_schema())
 VALIDATION_JSON_SCHEMA = openai_strict_schema(ValidationResult.model_json_schema())

@@ -1,6 +1,6 @@
 import unittest
 
-from review_extraction.form_schema import EXPECTED_EULER, EXTRACTION_ITEMS, extraction_form_prompt
+from review_extraction.form_schema import EXPECTED_EULER, EXTRACTION_ITEMS, extraction_form_prompt, extraction_plan_prompt
 
 
 class FormSchemaTests(unittest.TestCase):
@@ -25,6 +25,20 @@ class FormSchemaTests(unittest.TestCase):
         self.assertIn("humerus_thorax_translations", prompt)
         self.assertIn("no_method_or_reference", prompt)
         self.assertIn("not_assessed", prompt)
+
+    def test_prompt_can_be_limited_to_selected_items(self) -> None:
+        prompt = extraction_form_prompt(item_ids={"thorax_used"})
+
+        self.assertIn("thorax_used", prompt)
+        self.assertNotIn("humerus_thorax_translations", prompt)
+
+    def test_extraction_plan_prompt_lists_themes(self) -> None:
+        prompt = extraction_plan_prompt()
+
+        self.assertIn("segment.thorax", prompt)
+        self.assertIn("joint.humerus_scapula", prompt)
+        self.assertIn("present", prompt)
+        self.assertIn("unclear", prompt)
 
 
 if __name__ == "__main__":
