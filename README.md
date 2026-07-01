@@ -156,6 +156,42 @@ Si les sorties candidates existent deja, elles sont reutilisees. Pour comparer s
 review-model-benchmark .\pdf_input --reference-out .\outputs --out .\benchmark_outputs --models gpt-5.4 gpt-5.4-mini --compare-only
 ```
 
+## Echanges avec Covidence
+
+Covidence est traite ici comme une source/destination de fichiers. Le flux robuste est:
+
+1. telecharger depuis Covidence un dossier ou ZIP contenant les full texts;
+2. copier les PDF dans `pdf_input`;
+3. lancer `review-extract`;
+4. exporter les decisions et extractions dans des CSV/XLSX lisibles pour Covidence ou pour archivage.
+
+Importer les PDF depuis un dossier ou ZIP Covidence:
+
+```powershell
+review-covidence import-pdfs .\covidence_download --out .\pdf_input
+review-covidence import-pdfs .\covidence_download.zip --out .\pdf_input
+```
+
+La commande cree aussi un manifeste:
+
+```text
+pdf_input\covidence_pdf_manifest.csv
+```
+
+Exporter les resultats vers des fichiers de transfert:
+
+```powershell
+review-covidence export-results --results .\outputs --out .\covidence_export
+```
+
+Fichiers produits:
+
+- `covidence_export\covidence_screening_results.csv`
+- `covidence_export\covidence_extraction_results.csv`
+- `covidence_export\covidence_results.xlsx`
+
+Limite actuelle: sans API Covidence officielle configuree ici, le projet ne se connecte pas directement au site Covidence. On evite donc l'automatisation fragile du navigateur/login et on passe par les exports/imports fichiers.
+
 ## Tests
 
 Les tests unitaires utilisent `unittest`, donc ils peuvent tourner sans `pytest`:
