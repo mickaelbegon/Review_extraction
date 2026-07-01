@@ -9,4 +9,5 @@ venv/
 outputs/
 pdf_input/
 comparison_inputs/
+study_pages/
 *.egg-info/

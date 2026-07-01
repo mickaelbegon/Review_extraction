@@ -31,6 +31,7 @@ review-extract = "review_extraction.cli:main"
 review-model-benchmark = "review_extraction.benchmark_cli:main"
 review-covidence = "review_extraction.covidence_cli:main"
 review-pricing = "review_extraction.pricing_cli:main"
+review-study-pages = "review_extraction.study_pages_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["review_extraction*"]

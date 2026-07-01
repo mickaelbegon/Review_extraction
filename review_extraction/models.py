@@ -52,6 +52,23 @@ class ExtractionResult(BaseModel):
     answers: list[ExtractedAnswer]
 
 
+class StudyMetadataField(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    field_id: str
+    value: str
+    confidence: confloat(ge=0, le=1)
+    evidence: list[Evidence] = Field(default_factory=list)
+    rationale_short: str
+
+
+class StudyMetadataResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    article_id: str
+    fields: list[StudyMetadataField]
+
+
 ExtractionPlanStatus = Literal["present", "absent", "unclear"]
 
 
@@ -197,6 +214,7 @@ class ArticleResult(BaseModel):
     article_id: str
     source_pdf: str
     screening: FinalScreeningResult | None = None
+    study_metadata: list[StudyMetadataField] = Field(default_factory=list)
     answers: list[FinalAnswer]
     usage: list[TokenUsage] = Field(default_factory=list)
     processing_seconds: float | None = None
@@ -205,5 +223,6 @@ class ArticleResult(BaseModel):
 SCREENING_JSON_SCHEMA = openai_strict_schema(ScreeningResult.model_json_schema())
 SCREENING_VALIDATION_JSON_SCHEMA = openai_strict_schema(ScreeningValidationResult.model_json_schema())
 EXTRACTION_JSON_SCHEMA = openai_strict_schema(ExtractionResult.model_json_schema())
+STUDY_METADATA_JSON_SCHEMA = openai_strict_schema(StudyMetadataResult.model_json_schema())
 EXTRACTION_PLAN_JSON_SCHEMA = openai_strict_schema(ExtractionPlanResult.model_json_schema())
 VALIDATION_JSON_SCHEMA = openai_strict_schema(ValidationResult.model_json_schema())

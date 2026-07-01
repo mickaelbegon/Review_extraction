@@ -75,6 +75,44 @@ EXTRACTION_KEYWORDS = [
     "z-x-y",
 ]
 
+STUDY_METADATA_KEYWORDS = [
+    "abstract",
+    "author",
+    "doi",
+    "journal",
+    "participant",
+    "patient",
+    "subject",
+    "healthy",
+    "cadaver",
+    "model",
+    "country",
+    "institution",
+    "university",
+    "hospital",
+    "age",
+    "sex",
+    "female",
+    "male",
+    "shoulder",
+    "side",
+    "dominant",
+    "movement",
+    "task",
+    "elevation",
+    "abduction",
+    "flexion",
+    "plane",
+    "active",
+    "passive",
+    "data availability",
+    "supplementary",
+    "repository",
+    "isb",
+    "international society of biomechanics",
+    "methods",
+]
+
 METHOD_HEADINGS = [
     "method",
     "methods",
@@ -118,6 +156,22 @@ def build_extraction_context(
         title="TARGETED METHODOLOGY EXTRACTION CONTEXT",
         always_include_pages=1,
         window_chars=1_700,
+    )
+
+
+def build_study_metadata_context(
+    pages: list[PageText],
+    max_chars: int = 45_000,
+    target_fraction: float = 0.70,
+) -> ContextBuild:
+    return _build_targeted_context(
+        pages=pages,
+        keywords=STUDY_METADATA_KEYWORDS,
+        max_chars=max_chars,
+        target_fraction=target_fraction,
+        title="TARGETED STUDY METADATA CONTEXT",
+        always_include_pages=2,
+        window_chars=1_600,
     )
 
 

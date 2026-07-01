@@ -101,6 +101,25 @@ class FakeResponses:
                     },
                 ],
             }
+        elif schema_name == "study_metadata_result":
+            payload = {
+                "article_id": "paper",
+                "fields": [
+                    {
+                        "field_id": "study_id",
+                        "value": "Example2024",
+                        "confidence": 0.9,
+                        "evidence": [
+                            {
+                                "page": 1,
+                                "quote": "Example title.",
+                                "relevance": "Title page.",
+                            }
+                        ],
+                        "rationale_short": "Study ID from title page.",
+                    }
+                ],
+            }
         elif schema_name == "validation_result":
             payload = {
                 "article_id": "paper",
@@ -167,12 +186,14 @@ class OpenAIAgentTests(unittest.TestCase):
 
         screening = agents.screen("paper", "[PAGE 1]\nParticipants were adults.")
         screening_validation = agents.validate_screening("paper", "[PAGE 1]\nParticipants were adults.", screening)
+        metadata = agents.extract_study_metadata("paper", "[PAGE 1]\nExample title.")
         extraction_plan = agents.plan_extraction("paper", "[PAGE 1]\nThorax markers were used.")
         extraction = agents.extract("paper", "[PAGE 1]\nThorax markers were used.", item_ids=["thorax_used"])
         validation = agents.validate("paper", "[PAGE 1]\nThorax markers were used.", extraction, item_ids=["thorax_used"])
 
         self.assertEqual(screening.overall_decision, "include")
         self.assertEqual(screening_validation.overall_status, "agree")
+        self.assertEqual(metadata.fields[0].field_id, "study_id")
         self.assertEqual(extraction_plan.themes[0].theme_id, "measurement_methods")
         self.assertEqual(extraction.article_id, "paper")
         self.assertEqual(extraction.answers[0].item_id, "thorax_used")
@@ -181,14 +202,15 @@ class OpenAIAgentTests(unittest.TestCase):
         self.assertEqual(client.responses.calls[1]["model"], "validate-model")
         self.assertEqual(client.responses.calls[2]["model"], "extract-model")
         self.assertEqual(client.responses.calls[3]["model"], "extract-model")
-        self.assertEqual(client.responses.calls[4]["model"], "validate-model")
+        self.assertEqual(client.responses.calls[4]["model"], "extract-model")
+        self.assertEqual(client.responses.calls[5]["model"], "validate-model")
         self.assertTrue(all(call["text"]["format"]["strict"] for call in client.responses.calls))
         self.assertIn("Paper text follows", client.responses.calls[0]["input"][1]["content"])
         self.assertIn("Screener output to audit", client.responses.calls[1]["input"][1]["content"])
-        self.assertIn("Extractor output to audit", client.responses.calls[4]["input"][1]["content"])
+        self.assertIn("Extractor output to audit", client.responses.calls[5]["input"][1]["content"])
         self.assertEqual(
             [event.step for event in agents.usage_events],
-            ["screening", "screening_validation", "extraction_planning", "extraction", "extraction_validation"],
+            ["screening", "screening_validation", "study_metadata", "extraction_planning", "extraction", "extraction_validation"],
         )
         self.assertEqual(agents.usage_events[0].input_tokens, 1000)
         self.assertEqual(agents.usage_events[0].output_tokens, 100)

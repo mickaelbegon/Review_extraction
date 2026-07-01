@@ -14,6 +14,19 @@ CHOICE_ASSESSMENT = [
 ]
 
 JOINT_ASSESSMENT = [*CHOICE_ASSESSMENT, "not_assessed"]
+THORAX_ORIENTATION_DETAILS = ["z_up_convention", "other", "not_applicable", "not_reported"]
+SEGMENT_CONSTRUCTION_DETAILS = [
+    "body_or_segment_oriented",
+    "articular_surface_oriented",
+    "anatomical_landmarks",
+    "geometrical_features",
+    "other",
+    "not_applicable",
+    "not_reported",
+]
+HUMERUS_ISB_CONSTRUCTION_OPTION = ["isb_option_1", "isb_option_2", "not_defined", "not_applicable", "not_reported"]
+JOINT_ROTATION_DETAILS = ["other_euler_sequence", "helical_angle", "other", "not_applicable", "not_reported"]
+JOINT_TRANSLATION_DETAILS = ["distal_coordinate_system", "joint_coordinate_system", "other", "not_applicable", "not_reported"]
 
 
 @dataclass(frozen=True)
@@ -100,6 +113,13 @@ def build_extraction_items() -> list[ExtractionItem]:
                     guidance="Check landmarks, cross-products, and anatomical/geometrical definitions. Ignore obvious typos if intent is clear.",
                 ),
                 ExtractionItem(
+                    id=f"{segment}_axes_construction_details",
+                    theme=f"segment.{segment}",
+                    question=f"If the {segment} axes construction differs from ISB recommendations, which construction approach is used?",
+                    allowed_answers=SEGMENT_CONSTRUCTION_DETAILS,
+                    guidance="Select not_applicable when ISB recommendations were followed or the segment was not used. Select all supported alternatives when the method differs.",
+                ),
+                ExtractionItem(
                     id=f"{segment}_scs_origin",
                     theme=f"segment.{segment}",
                     question=f"How does the study define the {segment} SCS origin relative to ISB recommendations?",
@@ -108,6 +128,25 @@ def build_extraction_items() -> list[ExtractionItem]:
                 ),
             ]
         )
+
+    items.extend(
+        [
+            ExtractionItem(
+                id="thorax_axes_orientation_details",
+                theme="segment.thorax",
+                question="If thorax axes orientation differs from ISB recommendations, which orientation convention is used?",
+                allowed_answers=THORAX_ORIENTATION_DETAILS,
+                guidance="Use z_up_convention for the thorax Z-up convention described in the form. Use not_applicable when ISB recommendations were followed or thorax was not used.",
+            ),
+            ExtractionItem(
+                id="humerus_axes_construction_isb_option",
+                theme="segment.humerus",
+                question="If humerus axes construction follows ISB recommendations, which humerus SCS option is used?",
+                allowed_answers=HUMERUS_ISB_CONSTRUCTION_OPTION,
+                guidance="Select option 1 or 2 only when clearly supported. Use not_defined when the paper follows ISB but does not specify the option.",
+            ),
+        ]
+    )
 
     for joint_id, label in JOINTS.items():
         items.extend(
@@ -127,11 +166,25 @@ def build_extraction_items() -> list[ExtractionItem]:
                     guidance=f"The ISB Euler sequence for this joint is {EXPECTED_EULER[joint_id]}. Verify the reported sequence or alternative method.",
                 ),
                 ExtractionItem(
+                    id=f"{joint_id}_rotation_details",
+                    theme=f"joint.{joint_id}",
+                    question=f"If rotations for {label} differ from ISB recommendations, which rotation approach is used?",
+                    allowed_answers=JOINT_ROTATION_DETAILS,
+                    guidance="Use not_applicable when ISB recommendations were followed or rotations were not assessed. Select all supported alternatives when a different approach is described.",
+                ),
+                ExtractionItem(
                     id=f"{joint_id}_translations",
                     theme=f"joint.{joint_id}",
                     question=f"How are translations computed for {label} relative to ISB recommendations?",
                     allowed_answers=JOINT_ASSESSMENT,
                     guidance="Check whether translations are reported, in which coordinate system, or not assessed.",
+                ),
+                ExtractionItem(
+                    id=f"{joint_id}_translation_details",
+                    theme=f"joint.{joint_id}",
+                    question=f"If translations for {label} differ from ISB recommendations, which coordinate system is used?",
+                    allowed_answers=JOINT_TRANSLATION_DETAILS,
+                    guidance="Use not_applicable when ISB recommendations were followed, translations are not defined by ISB, or translations were not assessed.",
                 ),
             ]
         )

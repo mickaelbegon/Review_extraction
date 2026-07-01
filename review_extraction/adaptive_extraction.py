@@ -58,6 +58,13 @@ def automatic_absent_answers(plan: ExtractionPlanResult) -> list[FinalAnswer]:
                         rationale=f"{segment} axes construction was not assessed because the segment appears absent.",
                     ),
                     _automatic_answer(
+                        item_id=f"{segment}_axes_construction_details",
+                        answer="not_applicable",
+                        decision_confidence=decision.confidence,
+                        evidence=decision.evidence,
+                        rationale=f"{segment} axes construction details were not assessed because the segment appears absent.",
+                    ),
+                    _automatic_answer(
                         item_id=f"{segment}_scs_origin",
                         answer="no_method_or_reference",
                         decision_confidence=decision.confidence,
@@ -66,6 +73,26 @@ def automatic_absent_answers(plan: ExtractionPlanResult) -> list[FinalAnswer]:
                     ),
                 ]
             )
+            if segment == "thorax":
+                answers.append(
+                    _automatic_answer(
+                        item_id="thorax_axes_orientation_details",
+                        answer="not_applicable",
+                        decision_confidence=decision.confidence,
+                        evidence=decision.evidence,
+                        rationale="Thorax axes orientation details were not assessed because thorax appears absent.",
+                    )
+                )
+            if segment == "humerus":
+                answers.append(
+                    _automatic_answer(
+                        item_id="humerus_axes_construction_isb_option",
+                        answer="not_applicable",
+                        decision_confidence=decision.confidence,
+                        evidence=decision.evidence,
+                        rationale="Humerus ISB construction option was not assessed because humerus appears absent.",
+                    )
+                )
 
     for joint_id in JOINTS:
         theme_id = f"joint.{joint_id}"
@@ -88,11 +115,25 @@ def automatic_absent_answers(plan: ExtractionPlanResult) -> list[FinalAnswer]:
                         rationale=f"{joint_id} rotations were not assessed because the joint relationship appears absent.",
                     ),
                     _automatic_answer(
+                        item_id=f"{joint_id}_rotation_details",
+                        answer="not_applicable",
+                        decision_confidence=decision.confidence,
+                        evidence=decision.evidence,
+                        rationale=f"{joint_id} rotation details were not assessed because the joint relationship appears absent.",
+                    ),
+                    _automatic_answer(
                         item_id=f"{joint_id}_translations",
                         answer="not_assessed",
                         decision_confidence=decision.confidence,
                         evidence=decision.evidence,
                         rationale=f"{joint_id} translations were not assessed because the joint relationship appears absent.",
+                    ),
+                    _automatic_answer(
+                        item_id=f"{joint_id}_translation_details",
+                        answer="not_applicable",
+                        decision_confidence=decision.confidence,
+                        evidence=decision.evidence,
+                        rationale=f"{joint_id} translation details were not assessed because the joint relationship appears absent.",
                     ),
                 ]
             )
@@ -111,19 +152,27 @@ def _theme_statuses(plan: ExtractionPlanResult) -> dict[str, str]:
 
 
 def _segment_item_ids(segment: str) -> set[str]:
-    return {
+    item_ids = {
         f"{segment}_used",
         f"{segment}_axes_orientation",
         f"{segment}_axes_construction",
+        f"{segment}_axes_construction_details",
         f"{segment}_scs_origin",
     }
+    if segment == "thorax":
+        item_ids.add("thorax_axes_orientation_details")
+    if segment == "humerus":
+        item_ids.add("humerus_axes_construction_isb_option")
+    return item_ids
 
 
 def _joint_item_ids(joint_id: str) -> set[str]:
     return {
         f"{joint_id}_reported",
         f"{joint_id}_rotations",
+        f"{joint_id}_rotation_details",
         f"{joint_id}_translations",
+        f"{joint_id}_translation_details",
     }
 
 

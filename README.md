@@ -6,6 +6,7 @@ Le pipeline produit:
 
 - un screening full paper inclusion/exclusion avant extraction;
 - une lecture ciblee des passages utiles pour reduire les tokens envoyes a l'API;
+- des metadonnees d'etude avec preuves et confiance;
 - une extraction adaptative qui envoie seulement les blocs methodologiques pertinents a l'IA;
 - un JSON de screening par article;
 - un fichier Excel `summary.xlsx` avec feuilles `Summary`, `Screening`, `Extraction` et `Review required`;
@@ -141,6 +142,21 @@ OPENAI_FALLBACK_VALIDATOR_MODEL=gpt-5.5
 
 La console indique explicitement quand une escalade vers `gpt-5.5` est declenchee.
 
+## Metadonnees d'etude
+
+Pour les articles inclus, l'IA extrait aussi les champs descriptifs suivants:
+
+- Study ID, first author, year, title, journal, DOI;
+- study design/purpose, country of data collection, source used to identify country;
+- population type, condition studied, number of participants, number of shoulders;
+- age, sex distribution, side studied;
+- movement/task, active/passive movement, main plane of movement;
+- ISB recommendation cited, data availability.
+
+Chaque champ est stocke dans le JSON article avec `value`, `confidence`, `evidence` et `rationale_short`.
+
+Les anciens JSON generes avant cette fonctionnalite n'auront pas ces champs. Pour les ajouter, relancez l'analyse des articles concernes avec `--force`, ou utilisez un nouveau dossier de sortie.
+
 ## Extraction adaptative
 
 Avant l'extraction detaillee, le pipeline effectue une courte planification pour identifier les blocs reellement presents:
@@ -151,6 +167,8 @@ Avant l'extraction detaillee, le pipeline effectue une courte planification pour
 
 Les blocs `present` ou `unclear` sont envoyes a l'extracteur et au validateur. Les blocs clairement `absent` sont remplis automatiquement avec des reponses conservatrices (`no`, `not_assessed`, `no_method_or_reference`) et restent visibles dans les exports avec `validator_status=auto_absent`.
 
+Validation avec le fichier Word de reference `Test_paperX_XX.docx`: la grille couvre les methodes de mesure, les segments thorax/clavicule/scapula/humerus, les axes orientation/construction, l'origine SCS, les articulations, les rotations/translations et les sous-details optionnels du formulaire.
+
 Pour accelerer plusieurs articles, utilisez:
 
 ```powershell
@@ -158,6 +176,22 @@ review-extract .\pdf_input --out .\outputs --workers 2
 ```
 
 Chaque worker cree son propre agent OpenAI pour eviter de melanger les usages tokens/couts entre articles. Augmentez `--workers` progressivement si vous ne rencontrez pas de rate limits.
+
+## Pages de lecture par etude
+
+Une sortie post-hoc cree un classeur Excel type "page Covidence", avec un onglet par etude et une mise en page compacte pour lecture/revision:
+
+```powershell
+review-study-pages --results .\outputs_hybrid_10 --out .\study_pages
+```
+
+Pour diviser les classeurs par premiere lettre de Study ID:
+
+```powershell
+review-study-pages --results .\outputs_hybrid_10 --out .\study_pages --split-by-letter
+```
+
+Chaque onglet combine les metadonnees, la decision de screening, les criteres, les reponses d'extraction, les statuts de validation et les items `review_required`. La page est configuree en paysage avec ajustement a une page pour faciliter l'impression ou la lecture rapide.
 
 ## Reprise sans relancer l'IA
 

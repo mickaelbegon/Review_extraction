@@ -16,6 +16,8 @@ from review_extraction.models import (
     ScreeningResult,
     ScreeningValidationDecision,
     ScreeningValidationResult,
+    StudyMetadataField,
+    StudyMetadataResult,
     TokenUsage,
     ValidationDecision,
     ValidationResult,
@@ -44,6 +46,23 @@ class RecordingAgents:
         self.extraction_contexts: list[str] = []
         self.validation_contexts: list[str] = []
         self.usage_events: list[TokenUsage] = []
+
+    def extract_study_metadata(self, article_id: str, paper_context: str) -> StudyMetadataResult:
+        self.usage_events.append(
+            TokenUsage(step="study_metadata", model="model", input_tokens=90, output_tokens=9, total_tokens=99)
+        )
+        return StudyMetadataResult(
+            article_id=article_id,
+            fields=[
+                StudyMetadataField(
+                    field_id="study_id",
+                    value=f"{article_id}2024",
+                    confidence=0.8,
+                    evidence=[Evidence(page=1, quote="Example study title.", relevance="title page")],
+                    rationale_short="Study ID inferred from title metadata.",
+                )
+            ],
+        )
 
     def plan_extraction(self, article_id: str, paper_context: str) -> ExtractionPlanResult:
         self.usage_events.append(
@@ -466,9 +485,10 @@ class PipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(agents.validation_contexts[0]), len(agents.extraction_contexts[0]))
             self.assertEqual(
                 [usage.step for usage in result.usage],
-                ["screening", "screening_validation", "extraction_planning", "extraction", "extraction_validation"],
+                ["screening", "screening_validation", "study_metadata", "extraction_planning", "extraction", "extraction_validation"],
             )
-            self.assertEqual(sum(usage.total_tokens for usage in result.usage), 814)
+            self.assertEqual(sum(usage.total_tokens for usage in result.usage), 913)
+            self.assertEqual(result.study_metadata[0].field_id, "study_id")
             self.assertIn("thorax_used", agents.extract_item_ids)
             self.assertNotIn("clavicle_used", agents.extract_item_ids)
             self.assertTrue(any(answer.item_id == "clavicle_used" and answer.final_answer == "no" for answer in result.answers))

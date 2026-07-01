@@ -5,7 +5,7 @@ from review_extraction.form_schema import EXPECTED_EULER, EXTRACTION_ITEMS, extr
 
 class FormSchemaTests(unittest.TestCase):
     def test_form_contains_expected_number_of_items(self) -> None:
-        self.assertEqual(len(EXTRACTION_ITEMS), 35)
+        self.assertEqual(len(EXTRACTION_ITEMS), 53)
 
     def test_all_item_ids_are_unique(self) -> None:
         item_ids = [item.id for item in EXTRACTION_ITEMS]
@@ -23,6 +23,8 @@ class FormSchemaTests(unittest.TestCase):
         self.assertIn("Use only allowed answer identifiers", prompt)
         self.assertIn("measurement_methods", prompt)
         self.assertIn("humerus_thorax_translations", prompt)
+        self.assertIn("humerus_thorax_translation_details", prompt)
+        self.assertIn("thorax_axes_orientation_details", prompt)
         self.assertIn("no_method_or_reference", prompt)
         self.assertIn("not_assessed", prompt)
 

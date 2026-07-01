@@ -4,6 +4,7 @@ from review_extraction.models import (
     EXTRACTION_JSON_SCHEMA,
     SCREENING_JSON_SCHEMA,
     SCREENING_VALIDATION_JSON_SCHEMA,
+    STUDY_METADATA_JSON_SCHEMA,
     VALIDATION_JSON_SCHEMA,
 )
 
@@ -13,6 +14,7 @@ class OpenAISchemaTests(unittest.TestCase):
         for schema in [
             SCREENING_JSON_SCHEMA,
             SCREENING_VALIDATION_JSON_SCHEMA,
+            STUDY_METADATA_JSON_SCHEMA,
             EXTRACTION_JSON_SCHEMA,
             VALIDATION_JSON_SCHEMA,
         ]:

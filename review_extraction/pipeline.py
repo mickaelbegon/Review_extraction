@@ -44,7 +44,7 @@ def process_pdf(
 
     _emit(progress, f"{prefix}extract PDF text")
     from .pdf_ingest import extract_pdf_text
-    from .targeted_context import build_extraction_context, build_full_context, build_screening_context
+    from .targeted_context import build_extraction_context, build_full_context, build_screening_context, build_study_metadata_context
 
     pages = extract_pdf_text(pdf_path)
     full_context = build_full_context(pages)
@@ -121,6 +121,14 @@ def process_pdf(
         _emit(progress, f"{prefix}done")
         return result
 
+    study_metadata_context = build_study_metadata_context(pages)
+    _emit(progress, f"{prefix}target study metadata context: {_context_report(study_metadata_context)}")
+    _emit(progress, f"{prefix}extract study metadata")
+    usage_start = _usage_marker(agents)
+    step_started = perf_counter()
+    study_metadata = agents.extract_study_metadata(article_id=article_id, paper_context=study_metadata_context.text)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
+
     extraction_context = build_extraction_context(pages)
     extraction_validation_context = build_extraction_context(pages, max_chars=70_000, target_fraction=0.90)
     _emit(progress, f"{prefix}target extraction context: {_context_report(extraction_context)}")
@@ -186,6 +194,7 @@ def process_pdf(
         result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     result.answers = merge_adaptive_answers(result.answers, automatic_answers)
     result.screening = final_screening
+    result.study_metadata = study_metadata.fields
     result.usage = article_usage
     result.processing_seconds = _elapsed(article_started)
 

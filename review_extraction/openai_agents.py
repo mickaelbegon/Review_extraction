@@ -12,14 +12,17 @@ from .models import (
     EXTRACTION_PLAN_JSON_SCHEMA,
     SCREENING_JSON_SCHEMA,
     SCREENING_VALIDATION_JSON_SCHEMA,
+    STUDY_METADATA_JSON_SCHEMA,
     VALIDATION_JSON_SCHEMA,
     ExtractionPlanResult,
     ExtractionResult,
     ScreeningResult,
     ScreeningValidationResult,
+    StudyMetadataResult,
     TokenUsage,
     ValidationResult,
 )
+from .study_metadata_schema import study_metadata_prompt
 from .pricing import pricing_for_model, tax_rate_from_env
 from .screening_schema import screening_prompt
 
@@ -216,6 +219,41 @@ class DualAgentExtractor:
             validator=True,
         )
         return ScreeningValidationResult.model_validate(data)
+
+    def extract_study_metadata(self, article_id: str, paper_context: str, *, model: str | None = None) -> StudyMetadataResult:
+        selected_model = model or self.config.model
+        prompt = "\n\n".join(
+            [
+                study_metadata_prompt(),
+                "Paper text follows. Page markers are authoritative.",
+                paper_context,
+            ]
+        )
+        response = _create_response(
+            self.client,
+            model=selected_model,
+            input=[
+                {"role": "system", "content": EXTRACTOR_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "study_metadata_result",
+                    "schema": STUDY_METADATA_JSON_SCHEMA,
+                    "strict": True,
+                }
+            },
+        )
+        data = _response_json(response)
+        data["article_id"] = article_id
+        self._record_usage(
+            response,
+            step="study_metadata",
+            model=selected_model,
+            validator=False,
+        )
+        return StudyMetadataResult.model_validate(data)
 
     def plan_extraction(self, article_id: str, paper_context: str, *, model: str | None = None) -> ExtractionPlanResult:
         selected_model = model or self.config.model
