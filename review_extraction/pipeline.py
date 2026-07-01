@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from time import perf_counter
 from pathlib import Path
 from typing import Callable
 
@@ -28,6 +29,7 @@ def process_pdf(
     screening_path = out_dir / f"{article_id}.screening.json"
     prefix = _progress_prefix(current, total, pdf_path)
     article_usage: list[TokenUsage] = []
+    article_started = perf_counter()
 
     if reuse_existing and json_path.exists():
         _emit(progress, f"{prefix}reuse existing JSON: {json_path.name}")
@@ -54,16 +56,18 @@ def process_pdf(
     else:
         _emit(progress, f"{prefix}screen targeted full paper")
         usage_start = _usage_marker(agents)
+        step_started = perf_counter()
         screening = agents.screen(article_id=article_id, paper_context=screening_context.text)
-        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}validate screening with broader targeted context")
         usage_start = _usage_marker(agents)
+        step_started = perf_counter()
         screening_validation = agents.validate_screening(
             article_id=article_id,
             paper_context=screening_validation_context.text,
             screening=screening,
         )
-        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}reconcile screening")
         final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         if _screening_needs_full_context_fallback(final_screening, screening_context, full_context):
@@ -72,21 +76,23 @@ def process_pdf(
                 f"{prefix}screening uncertain/complex: escalate to {agents.config.fallback_model} with full PDF context",
             )
             usage_start = _usage_marker(agents)
+            step_started = perf_counter()
             screening = agents.screen(
                 article_id=article_id,
                 paper_context=full_context.text,
                 model=agents.config.fallback_model,
             )
-            _collect_usage(agents, usage_start, article_usage, progress, prefix)
+            _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
             _emit(progress, f"{prefix}validate screening with {agents.config.fallback_validator_model} full PDF context")
             usage_start = _usage_marker(agents)
+            step_started = perf_counter()
             screening_validation = agents.validate_screening(
                 article_id=article_id,
                 paper_context=full_context.text,
                 screening=screening,
                 model=agents.config.fallback_validator_model,
             )
-            _collect_usage(agents, usage_start, article_usage, progress, prefix)
+            _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
             _emit(progress, f"{prefix}reconcile full-context screening")
             final_screening = reconcile_screening(screening=screening, validation=screening_validation)
         screening_path.write_text(final_screening.model_dump_json(indent=2), encoding="utf-8")
@@ -103,9 +109,10 @@ def process_pdf(
             screening=final_screening,
             answers=[],
             usage=article_usage,
+            processing_seconds=_elapsed(article_started),
         )
         json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
-        _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}")
+        _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}, processing={result.processing_seconds:.2f}s")
         if write_highlights:
             _emit(progress, f"{prefix}write highlighted PDF")
             _write_highlights_if_possible(pdf_path, result, out_dir)
@@ -117,12 +124,14 @@ def process_pdf(
     _emit(progress, f"{prefix}target extraction context: {_context_report(extraction_context)}")
     _emit(progress, f"{prefix}extract methodological parameters from targeted context")
     usage_start = _usage_marker(agents)
+    step_started = perf_counter()
     extraction = agents.extract(article_id=article_id, paper_context=extraction_context.text)
-    _collect_usage(agents, usage_start, article_usage, progress, prefix)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
     _emit(progress, f"{prefix}validate methodological parameters with broader targeted context")
     usage_start = _usage_marker(agents)
+    step_started = perf_counter()
     validation = agents.validate(article_id=article_id, paper_context=extraction_validation_context.text, extraction=extraction)
-    _collect_usage(agents, usage_start, article_usage, progress, prefix)
+    _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
     _emit(progress, f"{prefix}reconcile methodological parameters")
     result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     if _extraction_needs_fallback(result):
@@ -131,28 +140,31 @@ def process_pdf(
             f"{prefix}extraction complex/divergent: escalate to {agents.config.fallback_model}",
         )
         usage_start = _usage_marker(agents)
+        step_started = perf_counter()
         extraction = agents.extract(
             article_id=article_id,
             paper_context=extraction_context.text,
             model=agents.config.fallback_model,
         )
-        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}validate escalated extraction with {agents.config.fallback_validator_model}")
         usage_start = _usage_marker(agents)
+        step_started = perf_counter()
         validation = agents.validate(
             article_id=article_id,
             paper_context=extraction_validation_context.text,
             extraction=extraction,
             model=agents.config.fallback_validator_model,
         )
-        _collect_usage(agents, usage_start, article_usage, progress, prefix)
+        _collect_usage(agents, usage_start, article_usage, progress, prefix, elapsed_seconds=_elapsed(step_started))
         _emit(progress, f"{prefix}reconcile escalated methodological parameters")
         result = reconcile(source_pdf=str(pdf_path), extraction=extraction, validation=validation)
     result.screening = final_screening
     result.usage = article_usage
+    result.processing_seconds = _elapsed(article_started)
 
     json_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
-    _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}")
+    _emit(progress, f"{prefix}article usage: {_usage_summary(article_usage)}, processing={result.processing_seconds:.2f}s")
 
     if write_highlights:
         _emit(progress, f"{prefix}write highlighted PDF")
@@ -169,12 +181,18 @@ def process_many(
     *,
     write_highlights: bool = True,
     reuse_existing: bool = True,
+    limit: int | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> list[ArticleResult]:
     out_dir.mkdir(parents=True, exist_ok=True)
     pdfs = [pdf for pdf in (sorted(input_path.glob("*.pdf")) if input_path.is_dir() else [input_path]) if pdf.suffix.lower() == ".pdf"]
+    if limit is not None:
+        if limit < 0:
+            raise ValueError("limit must be greater than or equal to 0.")
+        pdfs = pdfs[:limit]
     total = len(pdfs)
-    _emit(progress, f"Found {total} PDF(s) to process.")
+    limit_message = f" (limit={limit})" if limit is not None else ""
+    _emit(progress, f"Found {total} PDF(s) to process{limit_message}.")
     results = []
     for current, pdf in enumerate(pdfs, start=1):
         results.append(
@@ -257,9 +275,14 @@ def _collect_usage(
     article_usage: list[TokenUsage],
     progress: Callable[[str], None] | None,
     prefix: str,
+    elapsed_seconds: float | None = None,
 ) -> None:
     usage_events = getattr(agents, "usage_events", [])
     new_events = list(usage_events[start:])
+    if elapsed_seconds is not None and new_events:
+        per_event_seconds = round(elapsed_seconds / len(new_events), 3)
+        for usage in new_events:
+            usage.elapsed_seconds = per_event_seconds
     article_usage.extend(new_events)
     for usage in new_events:
         _emit(progress, f"{prefix}{_format_usage(usage)}")
@@ -267,10 +290,11 @@ def _collect_usage(
 
 def _format_usage(usage: TokenUsage) -> str:
     cost = f", cost=${usage.estimated_cost_usd:.6f}" if usage.estimated_cost_usd is not None else ""
+    elapsed = f", elapsed={usage.elapsed_seconds:.2f}s" if usage.elapsed_seconds is not None else ""
     return (
         f"usage {usage.step}: model={usage.model}, "
         f"input={usage.input_tokens}, cached_input={usage.cached_input_tokens}, "
-        f"output={usage.output_tokens}, total={usage.total_tokens}{cost}"
+        f"output={usage.output_tokens}, total={usage.total_tokens}{cost}{elapsed}"
     )
 
 
@@ -280,5 +304,11 @@ def _usage_summary(usages: list[TokenUsage]) -> str:
     output_tokens = sum(usage.output_tokens for usage in usages)
     total_tokens = sum(usage.total_tokens for usage in usages)
     costs = [usage.estimated_cost_usd for usage in usages if usage.estimated_cost_usd is not None]
+    elapsed_values = [usage.elapsed_seconds for usage in usages if usage.elapsed_seconds is not None]
     cost = f", cost=${sum(costs):.6f}" if costs else ""
-    return f"input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}{cost}"
+    elapsed = f", ai_elapsed={sum(elapsed_values):.2f}s" if elapsed_values else ""
+    return f"input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}{cost}{elapsed}"
+
+
+def _elapsed(started: float) -> float:
+    return round(perf_counter() - started, 3)

@@ -18,6 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fallback-validator-model", default=None, help="OpenAI validator model for uncertain or complex cases.")
     parser.add_argument("--no-highlight", action="store_true", help="Disable highlighted PDF output.")
     parser.add_argument("--force", action="store_true", help="Re-run AI extraction even when output JSON files already exist.")
+    parser.add_argument("--limit", type=int, default=None, help="Process only the first N PDFs after sorting by filename.")
     return parser
 
 
@@ -44,6 +45,7 @@ def main() -> None:
             agents,
             write_highlights=not args.no_highlight,
             reuse_existing=not args.force,
+            limit=args.limit,
             progress=lambda message: print(message, flush=True),
         )
     except KeyboardInterrupt:
@@ -61,11 +63,23 @@ def main() -> None:
     output_tokens = sum(usage.output_tokens for result in results for usage in result.usage)
     total_tokens = sum(usage.total_tokens for result in results for usage in result.usage)
     costs = [usage.estimated_cost_usd for result in results for usage in result.usage if usage.estimated_cost_usd is not None]
+    ai_elapsed_values = [usage.elapsed_seconds for result in results for usage in result.usage if usage.elapsed_seconds is not None]
+    processing_values = [result.processing_seconds for result in results if result.processing_seconds is not None]
     print(f"Processed {len(results)} PDF(s).")
     print(f"Answers requiring human review: {review_required}/{total}.")
     print(f"OpenAI usage: input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}.")
     if costs:
-        print(f"Estimated OpenAI cost: ${sum(costs):.6f}.")
+        cost_total = sum(costs)
+        average_cost = cost_total / len(results) if results else 0
+        print(f"Estimated OpenAI cost: ${cost_total:.6f} (${average_cost:.6f}/article).")
+    if ai_elapsed_values:
+        ai_elapsed_total = sum(ai_elapsed_values)
+        average_ai_elapsed = ai_elapsed_total / len(results) if results else 0
+        print(f"OpenAI elapsed time: {ai_elapsed_total:.2f}s ({average_ai_elapsed:.2f}s/article).")
+    if processing_values:
+        processing_total = sum(processing_values)
+        average_processing = processing_total / len(results) if results else 0
+        print(f"Processing time: {processing_total:.2f}s ({average_processing:.2f}s/article).")
     print(f"Outputs written to: {args.out.resolve()}")
 
 

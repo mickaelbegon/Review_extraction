@@ -47,13 +47,14 @@ Chaque reponse OpenAI contient normalement un compteur `usage`. Le pipeline l'en
 
 ```text
 [1/12] article.pdf: usage screening: model=gpt-5.5, input=18432, cached_input=1024, output=912, total=19344, cost=$0.119520
-[1/12] article.pdf: article usage: input=62100, cached_input=2048, output=8420, total=70520, cost=$0.587300
+[1/12] article.pdf: usage extraction: model=gpt-5.4, input=28120, cached_input=0, output=4210, total=32330, cost=$0.184300, elapsed=42.31s
+[1/12] article.pdf: article usage: input=62100, cached_input=2048, output=8420, total=70520, cost=$0.587300, ai_elapsed=135.42s, processing=141.03s
 ```
 
 Les exports ajoutent:
 
-- `summary.csv`: colonnes `usage_input_tokens`, `usage_cached_input_tokens`, `usage_output_tokens`, `usage_total_tokens`, `usage_estimated_cost_usd`;
-- `summary.xlsx`: feuille `Usage` avec une ligne par etape (`screening`, `screening_validation`, `extraction`, `extraction_validation`).
+- `summary.csv`: colonnes `usage_input_tokens`, `usage_cached_input_tokens`, `usage_output_tokens`, `usage_total_tokens`, `usage_estimated_cost_usd`, `ai_elapsed_seconds`, `processing_seconds`;
+- `summary.xlsx`: feuille `Usage` avec une ligne par etape (`screening`, `screening_validation`, `extraction`, `extraction_validation`) et son `elapsed_seconds`.
 
 Les couts sont calcules automatiquement a partir du modele utilise (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, etc.) avec les tarifs OpenAI Standard / Short context et les taxes. Par defaut, le taux de taxe est celui du Quebec: 14.975%.
 
@@ -100,6 +101,22 @@ Options utiles:
 ```powershell
 review-extract .\pdfs --out .\outputs --no-highlight
 review-extract .\pdfs --out .\outputs --model gpt-5.4 --validator-model gpt-5.4 --fallback-model gpt-5.5 --fallback-validator-model gpt-5.5
+review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --no-highlight
+```
+
+Pour estimer le cout et le temps de l'approche hybride sur 10 articles sans surlignage:
+
+```powershell
+review-extract .\pdf_input --out .\outputs_hybrid_10 --limit 10 --no-highlight
+```
+
+La fin de la console donne le total et la moyenne par article:
+
+```text
+Processed 10 PDF(s).
+Estimated OpenAI cost: $3.245100 ($0.324510/article).
+OpenAI elapsed time: 1324.20s (132.42s/article).
+Processing time: 1390.15s (139.02s/article).
 ```
 
 ## Strategie hybride recommandee

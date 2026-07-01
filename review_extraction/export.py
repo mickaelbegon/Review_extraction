@@ -24,6 +24,8 @@ SUMMARY_COLUMNS = [
     "usage_output_tokens",
     "usage_total_tokens",
     "usage_estimated_cost_usd",
+    "ai_elapsed_seconds",
+    "processing_seconds",
 ]
 
 SCREENING_COLUMNS = [
@@ -43,6 +45,7 @@ USAGE_COLUMNS = [
     "source_pdf",
     "step",
     "model",
+    "elapsed_seconds",
     "input_tokens",
     "cached_input_tokens",
     "output_tokens",
@@ -156,6 +159,7 @@ def usage_rows(results: list[ArticleResult]) -> list[dict[str, Any]]:
                     "source_pdf": result.source_pdf,
                     "step": usage.step,
                     "model": usage.model,
+                    "elapsed_seconds": usage.elapsed_seconds if usage.elapsed_seconds is not None else "",
                     "input_tokens": usage.input_tokens,
                     "cached_input_tokens": usage.cached_input_tokens,
                     "output_tokens": usage.output_tokens,
@@ -189,6 +193,8 @@ def _summary_base_row(result: ArticleResult) -> dict[str, Any]:
         "usage_output_tokens": usage["output_tokens"],
         "usage_total_tokens": usage["total_tokens"],
         "usage_estimated_cost_usd": usage["estimated_cost_usd"],
+        "ai_elapsed_seconds": usage["elapsed_seconds"],
+        "processing_seconds": result.processing_seconds if result.processing_seconds is not None else "",
     }
 
 
@@ -232,6 +238,9 @@ def _style_sheet(sheet: Any, columns: list[str], get_column_letter: Any, Font: A
         "usage_output_tokens": 18,
         "usage_total_tokens": 18,
         "usage_estimated_cost_usd": 22,
+        "ai_elapsed_seconds": 18,
+        "processing_seconds": 18,
+        "elapsed_seconds": 18,
         "input_tokens": 16,
         "cached_input_tokens": 20,
         "output_tokens": 16,
@@ -288,10 +297,12 @@ def _usage_totals(result: ArticleResult) -> dict[str, Any]:
     output_tokens = sum(usage.output_tokens for usage in result.usage)
     total_tokens = sum(usage.total_tokens for usage in result.usage)
     costs = [usage.estimated_cost_usd for usage in result.usage if usage.estimated_cost_usd is not None]
+    elapsed_values = [usage.elapsed_seconds for usage in result.usage if usage.elapsed_seconds is not None]
     return {
         "input_tokens": input_tokens,
         "cached_input_tokens": cached_input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "estimated_cost_usd": round(sum(costs), 6) if costs else "",
+        "elapsed_seconds": round(sum(elapsed_values), 3) if elapsed_values else "",
     }

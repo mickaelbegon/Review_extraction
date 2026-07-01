@@ -303,6 +303,33 @@ class PipelineTests(unittest.TestCase):
             self.assertIn("write index.json", messages)
             self.assertIn("write summary.csv", messages)
 
+    def test_process_many_limit_uses_first_sorted_pdfs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "pdf_input"
+            out_dir = root / "outputs"
+            input_dir.mkdir()
+            out_dir.mkdir()
+            for name in ["b_paper.pdf", "a_paper.pdf"]:
+                (input_dir / name).write_bytes(b"%PDF-1.4\n")
+                article_id = Path(name).stem
+                result = ArticleResult(article_id=article_id, source_pdf=str(input_dir / name), answers=[])
+                (out_dir / f"{article_id}.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+            messages: list[str] = []
+
+            results = process_many(
+                input_dir,
+                out_dir,
+                agents=ExplodingAgents(),
+                write_highlights=False,
+                limit=1,
+                progress=messages.append,
+            )
+
+            self.assertEqual([result.article_id for result in results], ["a_paper"])
+            self.assertIn("Found 1 PDF(s) to process (limit=1).", messages)
+            self.assertTrue(any("[1/1] a_paper.pdf: reuse existing JSON: a_paper.json" in message for message in messages))
+
     def test_force_ignores_cached_article_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -367,6 +394,8 @@ class PipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(agents.validation_contexts[0]), len(agents.extraction_contexts[0]))
             self.assertEqual([usage.step for usage in result.usage], ["screening", "screening_validation", "extraction", "extraction_validation"])
             self.assertEqual(sum(usage.total_tokens for usage in result.usage), 726)
+            self.assertIsNotNone(result.processing_seconds)
+            self.assertTrue(all(usage.elapsed_seconds is not None for usage in result.usage))
 
     def test_uncertain_screening_escalates_to_fallback_model(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

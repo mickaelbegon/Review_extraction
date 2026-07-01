@@ -23,6 +23,7 @@ class ExportTests(unittest.TestCase):
                 TokenUsage(
                     step="extraction",
                     model="test-model",
+                    elapsed_seconds=12.345,
                     input_tokens=1000,
                     output_tokens=200,
                     total_tokens=1200,
@@ -31,6 +32,7 @@ class ExportTests(unittest.TestCase):
                     estimated_cost_usd=0.0014,
                 )
             ],
+            processing_seconds=14.2,
             answers=[
                 FinalAnswer(
                     item_id="measurement_methods",
@@ -71,6 +73,8 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(row["usage_output_tokens"], "200")
         self.assertEqual(row["usage_total_tokens"], "1200")
         self.assertEqual(row["usage_estimated_cost_usd"], "0.0014")
+        self.assertEqual(row["ai_elapsed_seconds"], "12.345")
+        self.assertEqual(row["processing_seconds"], "14.2")
 
     def test_write_csv_summary_includes_screening_only_rows(self) -> None:
         result = ArticleResult(
@@ -110,6 +114,7 @@ class ExportTests(unittest.TestCase):
                 TokenUsage(
                     step="screening",
                     model="screen-model",
+                    elapsed_seconds=3.5,
                     input_tokens=500,
                     output_tokens=50,
                     total_tokens=550,
@@ -118,6 +123,7 @@ class ExportTests(unittest.TestCase):
                     estimated_cost_usd=0.0006,
                 )
             ],
+            processing_seconds=4.25,
             screening=FinalScreeningResult(
                 article_id="paper",
                 overall_decision="include",
@@ -170,8 +176,9 @@ class ExportTests(unittest.TestCase):
             self.assertEqual(workbook["Extraction"]["F2"].value, "measurement_methods")
             self.assertEqual(workbook["Review required"]["A2"].value, "paper")
             self.assertEqual(workbook["Usage"]["C2"].value, "screening")
-            self.assertEqual(workbook["Usage"]["E2"].value, 500)
-            self.assertEqual(workbook["Usage"]["L2"].value, 0.0006)
+            self.assertEqual(workbook["Usage"]["E2"].value, 3.5)
+            self.assertEqual(workbook["Usage"]["F2"].value, 500)
+            self.assertEqual(workbook["Usage"]["M2"].value, 0.0006)
 
 
 if __name__ == "__main__":

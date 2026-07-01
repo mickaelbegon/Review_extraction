@@ -117,6 +117,7 @@ class TokenUsage(BaseModel):
 
     step: str
     model: str
+    elapsed_seconds: float | None = None
     input_tokens: int = 0
     cached_input_tokens: int = 0
     output_tokens: int = 0
@@ -178,6 +179,7 @@ class ArticleResult(BaseModel):
     screening: FinalScreeningResult | None = None
     answers: list[FinalAnswer]
     usage: list[TokenUsage] = Field(default_factory=list)
+    processing_seconds: float | None = None
 
 
 SCREENING_JSON_SCHEMA = openai_strict_schema(ScreeningResult.model_json_schema())
