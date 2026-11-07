@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 from .env import load_environment
+from .llm_clients import BACKENDS, CLAUDE_DEFAULT_MODELS, LLMRequestError, make_client
 from .openai_agents import DualAgentExtractor, OpenAIConfig, OpenAIRequestError
 
 
@@ -12,7 +14,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Extract systematic-review parameters from PDF articles.")
     parser.add_argument("input", type=Path, help="PDF file or directory containing PDFs.")
     parser.add_argument("--out", type=Path, default=Path("outputs"), help="Output directory.")
-    parser.add_argument("--model", default=None, help="OpenAI model for extraction.")
+    parser.add_argument(
+        "--backend",
+        choices=BACKENDS,
+        default=os.getenv("REVIEW_BACKEND", "openai"),
+        help="LLM backend: openai (API key), claude-cli (Claude Code, subscription) or anthropic (API key).",
+    )
+    parser.add_argument("--model", default=None, help="Model for extraction.")
     parser.add_argument("--validator-model", default=None, help="OpenAI model for independent validation.")
     parser.add_argument("--fallback-model", default=None, help="OpenAI model for uncertain or complex cases.")
     parser.add_argument("--fallback-validator-model", default=None, help="OpenAI validator model for uncertain or complex cases.")
@@ -34,6 +42,9 @@ def main() -> None:
     from .pipeline import process_many
 
     config = OpenAIConfig.from_env()
+    if args.backend != "openai":
+        for field, default in CLAUDE_DEFAULT_MODELS.items():
+            setattr(config, field, os.getenv(f"CLAUDE_{field.upper()}", default))
     if args.model:
         config.model = args.model
     if args.validator_model:
@@ -44,7 +55,8 @@ def main() -> None:
         config.fallback_validator_model = args.fallback_validator_model
 
     try:
-        agents = DualAgentExtractor(config=config)
+        client = make_client(args.backend)
+        agents = DualAgentExtractor(client=client, config=config)
         results = process_many(
             args.input,
             args.out,
@@ -54,15 +66,15 @@ def main() -> None:
             force_include=args.force_include,
             limit=args.limit,
             workers=args.workers,
-            agent_factory=lambda: DualAgentExtractor(config=config),
+            agent_factory=lambda: DualAgentExtractor(client=client, config=config),
             progress=lambda message: print(message, flush=True),
         )
     except KeyboardInterrupt:
         print("\nInterrupted. Existing JSON outputs were kept; rerun the same command to resume.", file=sys.stderr)
         raise SystemExit(130)
-    except OpenAIRequestError as exc:
+    except (OpenAIRequestError, LLMRequestError) as exc:
         print(f"\n{exc}", file=sys.stderr)
-        print("Fix the OpenAI account/key issue, then rerun the same command to resume from existing JSON.", file=sys.stderr)
+        print("Fix the account/key/subscription-limit issue, then rerun the same command to resume from existing JSON.", file=sys.stderr)
         raise SystemExit(2)
 
     review_required = sum(1 for result in results for answer in result.answers if answer.review_required)
@@ -76,15 +88,15 @@ def main() -> None:
     processing_values = [result.processing_seconds for result in results if result.processing_seconds is not None]
     print(f"Processed {len(results)} PDF(s).")
     print(f"Answers requiring human review: {review_required}/{total}.")
-    print(f"OpenAI usage: input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}.")
+    print(f"LLM usage: input={input_tokens}, cached_input={cached_input_tokens}, output={output_tokens}, total={total_tokens}.")
     if costs:
         cost_total = sum(costs)
         average_cost = cost_total / len(results) if results else 0
-        print(f"Estimated OpenAI cost: ${cost_total:.6f} (${average_cost:.6f}/article).")
+        print(f"Estimated API cost: ${cost_total:.6f} (${average_cost:.6f}/article).")
     if ai_elapsed_values:
         ai_elapsed_total = sum(ai_elapsed_values)
         average_ai_elapsed = ai_elapsed_total / len(results) if results else 0
-        print(f"OpenAI elapsed time: {ai_elapsed_total:.2f}s ({average_ai_elapsed:.2f}s/article).")
+        print(f"LLM elapsed time: {ai_elapsed_total:.2f}s ({average_ai_elapsed:.2f}s/article).")
     if processing_values:
         processing_total = sum(processing_values)
         average_processing = processing_total / len(results) if results else 0

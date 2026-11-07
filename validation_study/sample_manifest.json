@@ -1,0 +1,22 @@
+{
+  "created_utc": "2026-11-07T13:30:59+00:00",
+  "seed": 20260101,
+  "population_size": 1650,
+  "population_ids_sha256": "ae553590c692ec77fc060c5d36b3566bcda1bbc170ba05a8bcb1291d3bd81c46",
+  "sample_size": 165,
+  "fraction": 0.1,
+  "strata_cols": [
+    "year_bin"
+  ],
+  "split_ratio": {
+    "development": 40,
+    "tuning": 30,
+    "test": 100
+  },
+  "subset_sizes": {
+    "development": 39,
+    "tuning": 29,
+    "test": 97
+  },
+  "python": "3.11.9"
+}

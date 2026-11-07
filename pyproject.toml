@@ -20,6 +20,9 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
 ]
+anthropic = [
+    "anthropic>=0.40.0",
+]
 api = [
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
@@ -32,6 +35,10 @@ review-model-benchmark = "review_extraction.benchmark_cli:main"
 review-covidence = "review_extraction.covidence_cli:main"
 review-pricing = "review_extraction.pricing_cli:main"
 review-study-pages = "review_extraction.study_pages_cli:main"
+review-agent-io = "review_extraction.agent_io:main"
+review-agreement = "review_extraction.agreement:main"
+review-sample = "review_extraction.sampling:main"
+review-binary = "review_extraction.variables:main"
 
 [tool.setuptools.packages.find]
 include = ["review_extraction*"]
