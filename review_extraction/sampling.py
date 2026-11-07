@@ -45,9 +45,29 @@ def candidates_from_pdfs(folder: Path) -> list[dict[str, str]]:
     return rows
 
 
-def candidates_from_csv(path: Path) -> list[dict[str, str]]:
+def candidates_from_csv(
+    path: Path,
+    *,
+    id_col: str = "article_id",
+    year_col: str | None = None,
+    label_cols: list[str] | None = None,
+    id_prefix: str = "",
+) -> list[dict[str, str]]:
+    """Read candidates from a CSV (e.g. a Covidence export). Ids repeated in the file get a -2, -3... suffix."""
     with path.open(newline="", encoding="utf-8-sig") as handle:
-        return [dict(r) for r in csv.DictReader(handle)]
+        raw = list(csv.DictReader(handle))
+    seen: dict[str, int] = defaultdict(int)
+    rows = []
+    for record in raw:
+        base = id_prefix + record[id_col].strip().lstrip("#")
+        seen[base] += 1
+        row = dict(record)
+        row["article_id"] = base if seen[base] == 1 else f"{base}-{seen[base]}"
+        if year_col:
+            row["year"] = (record.get(year_col) or "").strip()
+        row["label"] = " | ".join((record.get(c) or "").strip() for c in (label_cols or []))
+        rows.append(row)
+    return rows
 
 
 def add_metadata_from_results(rows: list[dict[str, str]], results_dir: Path) -> None:
@@ -103,7 +123,7 @@ def subset_sizes(n: int, ratio: tuple[int, int, int], seed: int) -> dict[str, in
     return largest_remainder(n, dict(zip(SUBSETS, map(float, ratio))), rng)
 
 
-def write_template(path: Path, article_ids: list[str]) -> None:
+def write_template(path: Path, article_ids: list[str], labels: dict[str, str] | None = None) -> None:
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -125,17 +145,17 @@ def write_template(path: Path, article_ids: list[str]) -> None:
         letter = get_column_letter(col)
         list_ref[item.id] = f"=Lists!${letter}$2:${letter}${len(item.allowed_answers) + 1}"
 
-    header = ["article_id", *(v.name for v in variables)]
+    header = ["article_id", "study_label", *(v.name for v in variables)]
     sheet.append(header)
     for cell in sheet[1]:
         cell.font = Font(bold=True)
         cell.fill = PatternFill("solid", fgColor="DDEBF7")
     for article_id in article_ids:
-        sheet.append([article_id])
+        sheet.append([article_id, (labels or {}).get(article_id, "")])
     last_row = len(article_ids) + 1
     binary_dv = DataValidation(type="list", formula1='"0,1"', allow_blank=True)
     sheet.add_data_validation(binary_dv)
-    for col, var in enumerate(variables, start=2):
+    for col, var in enumerate(variables, start=3):
         letter = get_column_letter(col)
         rng = f"{letter}2:{letter}{last_row}"
         if var.binary:
@@ -144,8 +164,9 @@ def write_template(path: Path, article_ids: list[str]) -> None:
             dv = DataValidation(type="list", formula1=list_ref[var.item_id], allow_blank=True)
             sheet.add_data_validation(dv)
             dv.add(rng)
-    sheet.freeze_panes = "B2"
-    sheet.column_dimensions["A"].width = 40
+    sheet.column_dimensions["A"].width = 14
+    sheet.column_dimensions["B"].width = 60
+    sheet.freeze_panes = "C2"
 
     codebook.append(["variable", "domain", "type", "question", "allowed answers", "guidance"])
     for var in variables:
@@ -174,6 +195,10 @@ def main() -> None:
     parser.add_argument("--split", default="40,30,100", help="development,tuning,test proportions (default 40,30,100).")
     parser.add_argument("--strata-cols", default="year_bin", help="Comma-separated stratification columns (default year_bin; '' for none).")
     parser.add_argument("--results", type=Path, default=None, help="Optional extraction JSON folder to add study metadata columns for stratification.")
+    parser.add_argument("--id-col", default="article_id", help="CSV column holding the article id (Covidence export: 'Covidence #').")
+    parser.add_argument("--id-prefix", default="", help="Prefix added to ids from --id-col (e.g. cov).")
+    parser.add_argument("--year-col", default=None, help="CSV column with the publication year (Covidence export: 'Published Year').")
+    parser.add_argument("--label-cols", default="", help="Comma-separated CSV columns shown to raters as study_label (e.g. Study,Title).")
     parser.add_argument("--seed", type=int, default=20260101)
     parser.add_argument("--force", action="store_true", help="Overwrite an existing sample (breaks the a priori split: avoid).")
     args = parser.parse_args()
@@ -182,7 +207,13 @@ def main() -> None:
     if sample_path.exists() and not args.force:
         sys.exit(f"{sample_path} already exists: the split is defined a priori and is not redrawn. Use --force only before any prompt work.")
 
-    rows = candidates_from_pdfs(args.input) if args.input.is_dir() else candidates_from_csv(args.input)
+    rows = candidates_from_pdfs(args.input) if args.input.is_dir() else candidates_from_csv(
+        args.input,
+        id_col=args.id_col,
+        year_col=args.year_col,
+        label_cols=[c for c in args.label_cols.split(",") if c],
+        id_prefix=args.id_prefix,
+    )
     if not rows:
         sys.exit("No candidate articles found.")
     if not any("year_bin" in r for r in rows):
@@ -202,14 +233,15 @@ def main() -> None:
     sample = assign_subsets(stratified_sample(rows, n=n, strata_cols=strata_cols, seed=args.seed), sizes, args.seed)
 
     args.out.mkdir(parents=True, exist_ok=True)
-    columns = ["article_id", "subset", "stratum", *strata_cols]
+    columns = ["article_id", "subset", "stratum", *strata_cols, "label"]
     with sample_path.open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(sorted(sample, key=lambda r: (r["subset"], r["article_id"])))
     ids = sorted(r["article_id"] for r in sample)
+    labels = {r["article_id"]: r.get("label", "") for r in sample}
     for rater in ("A", "B"):
-        write_template(args.out / f"human_extraction_rater_{rater}.xlsx", ids)
+        write_template(args.out / f"human_extraction_rater_{rater}.xlsx", ids, labels)
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "seed": args.seed,

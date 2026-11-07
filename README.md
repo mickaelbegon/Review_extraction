@@ -101,6 +101,12 @@ review-sample .\pdf_input --out .alidation_study --strata-cols year_bin
 
    Sorties: `validation_sample.csv`, `sample_manifest.json` (graine, tailles, hash de la population), `human_extraction_rater_A.xlsx` et `_B.xlsx` (listes deroulantes + onglet `Codebook`). Un echantillon existant n'est jamais retire de nouveau sans `--force`. `--results <dossier JSON>` permet de stratifier aussi sur les metadonnees (ex. `--strata-cols year_bin,population_type`).
 
+   Echantillon reel de la revue (1650 etudes incluses, 165 tirees, graine 20260101, strate `year_bin`; 39 developpement / 29 reglage / 97 test): `validation_study/`. La liste allegee `included_studies.csv` (sans resumes ni notes du relecteur) redonne exactement le meme tirage:
+
+```powershell
+review-sample validation_study\included_studies.csv --out validation_study --id-col article_id --year-col "Published Year" --label-cols "Study,Title" --strata-cols year_bin --force
+```
+
 2. **Tableau large avec variables binaires** (les items a reponses multiples, "Select all", deviennent des colonnes `item__option` 0/1):
 
 ```powershell
