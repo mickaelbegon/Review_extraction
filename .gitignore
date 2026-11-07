@@ -11,3 +11,5 @@ pdf_input/
 comparison_inputs/
 study_pages/
 *.egg-info/
+agent_work/
+outputs_claude_agent/

@@ -72,6 +72,53 @@ Pour voir la table de prix utilisee par le code:
 review-pricing
 ```
 
+## Backends Claude (abonnement ou API Anthropic)
+
+`--backend` (ou `REVIEW_BACKEND` dans `.env`) choisit le fournisseur; le pipeline reste identique:
+
+- `openai` (defaut): API OpenAI, comme avant;
+- `claude-cli`: Claude Code en mode non interactif (`claude -p`), facture sur l'abonnement Pro/Max, sans cout en dollars. Prerequis: Claude Code installe et connecte (`claude`, puis `/login`); sinon definir `CLAUDE_CLI_PATH`;
+- `anthropic`: API Anthropic (`pip install -e ".[anthropic]"`, `ANTHROPIC_API_KEY` dans `.env`).
+
+```powershell
+review-extract .\pdf_input --out .\outputs_claude --backend claude-cli --workers 1 --limit 3 --no-highlight
+```
+
+Modeles par defaut: `claude-sonnet-5-5` (extraction/validation) et `claude-opus-5-5` (escalade). Surcharge via `--model` etc. ou `CLAUDE_MODEL`, `CLAUDE_VALIDATOR_MODEL`, `CLAUDE_FALLBACK_MODEL`, `CLAUDE_FALLBACK_VALIDATOR_MODEL`; `CLAUDE_EFFORT` regle l'effort de raisonnement du CLI.
+
+Notes:
+- avec `claude-cli`, les tokens sont comptes mais le cout est vide (abonnement); quand la limite du plan est atteinte, relancer la meme commande reprend depuis les JSON existants;
+- pour un protocole reproductible, archiver l'ID complet du modele et la version du CLI (`claude --version`); la temperature n'est pas reglable via le CLI;
+- garder `--workers` bas (1-2) pour menager les limites de l'abonnement.
+
+## Etude de validation (protocole d'extraction assistee par IA)
+
+1. **Echantillon a priori** (avant tout travail sur le prompt): echantillon aleatoire stratifie de 10 %, scinde en developpement / reglage / test (40/30/100 mis a l'echelle), avec gabarits Excel vierges pour deux evaluateurs humains en aveugle:
+
+```powershell
+review-sample .\pdf_input --out .alidation_study --strata-cols year_bin
+```
+
+   Sorties: `validation_sample.csv`, `sample_manifest.json` (graine, tailles, hash de la population), `human_extraction_rater_A.xlsx` et `_B.xlsx` (listes deroulantes + onglet `Codebook`). Un echantillon existant n'est jamais retire de nouveau sans `--force`. `--results <dossier JSON>` permet de stratifier aussi sur les metadonnees (ex. `--strata-cols year_bin,population_type`).
+
+2. **Tableau large avec variables binaires** (les items a reponses multiples, "Select all", deviennent des colonnes `item__option` 0/1):
+
+```powershell
+review-binary --results .\outputs_claude_agent
+```
+
+   `binary.csv` est aussi regenere par l'agent a chaque article (`review-agent-io finalize`).
+
+3. **Accord** (% exact + IC de Wilson, kappa de Cohen non pondere + IC 95 % bootstrap, seuils kappa >= 0,80 et accord >= 90 %, verdict par domaine):
+
+```powershell
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset tuning --out .greement_tuning
+review-agreement --a rater_A.xlsx --b rater_B.xlsx --label human_vs_human --out .greement_human
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset test --final-evaluation --out .greement_test
+```
+
+   Le sous-ensemble `test` exige `--final-evaluation` et ne peut etre evalue qu'une fois (fichier verrou). Un domaine est declare apte seulement si toutes ses variables evaluables passent les deux seuils.
+
 ## Installation
 
 ```powershell
