@@ -2,7 +2,9 @@
 
 MVP pour extraire automatiquement des paramètres méthodologiques d'articles PDF dans une revue systématique, avec validation par un second agent indépendant.
 
-Le pipeline produit:
+**Deux modes**: pipeline API (decrit ci-dessous) ou agent Claude Code sur abonnement, sans API et sans screening (voir la section "Deux modes de fonctionnement").
+
+Le pipeline API produit:
 
 - un screening full paper inclusion/exclusion avant extraction;
 - une lecture ciblee des passages utiles pour reduire les tokens envoyes a l'API;
@@ -25,6 +27,92 @@ La phase amont applique la grille:
 - langue: inclure les articles en anglais.
 
 L'extraction détaillée est lancée seulement si le screening final est `include` sans révision humaine requise. Les articles exclus ou incertains gardent un `*.screening.json`, une ligne dans `summary.csv`, et un PDF surligné des preuves de screening si le surlignage est activé.
+
+## Deux modes de fonctionnement
+
+| | Pipeline API (`review-extract`) | Agent abonnement (`/extract-articles`) |
+|---|---|---|
+| Fournisseur | OpenAI (defaut), ou Claude via `--backend` | Claude Code, abonnement Pro/Max, **sans API** |
+| Screening | oui (puis extraction si `include`) | **non**: l'inclusion a ete faite par les humains |
+| Agents | extracteur + validateur independant + escalade de modele | un seul extracteur a configuration gelee (protocole) |
+| Cout | tokens factures | limites de l'abonnement |
+| Sortie | `<article>.json`, `summary.csv/xlsx` | **meme format** `<article>.json`, `summary.csv/xlsx`, + `binary.csv` |
+
+Le reste de ce README decrit le pipeline API (screening, extraction adaptative, benchmark...). La section suivante decrit le mode abonnement, utilise pour la revue en cours (extraction seule, protocole "AI-assisted data extraction and validation").
+
+## Extraction des parametres sans API (abonnement Claude)
+
+### Principe
+Le LLM est un **sous-agent Claude Code** (`.claude/agents/review-extractor.md`) qui tourne dans ton application Claude Code deja connectee a ton abonnement: aucune cle API, aucune facturation au token. Le code Python ne fait que les parties deterministes (texte du PDF, verification, export). Le modele est fixe dans l'agent (`claude-sonnet-5-5`) pour que la configuration soit gelee et archivable.
+
+### Deroulement pour un article
+1. **`prepare`** (Python, aucun appel IA): extrait le texte du PDF et ecrit, dans `agent_work/<article_id>/`:
+   - `context.txt`: passages cibles pour les parametres methodologiques;
+   - `metadata_context.txt`: passages cibles pour les metadonnees d'etude;
+   - `pages.txt`: texte complet par page (consulte seulement si le contexte cible ne suffit pas);
+   - `form.md`: la grille (53 items avec reponses permises et consignes, 21 champs de metadonnees, format de sortie);
+   - `extraction.template.json`: gabarit avec tous les `item_id` et `field_id`.
+2. **L'agent lit** `form.md` puis le contexte, et remplit `extraction.json`: pour chaque item une reponse parmi les identifiants permis (liste pour les items a reponses multiples), une confiance, une citation exacte avec numero de page, une courte justification et `needs_human_review`. Regles: ne jamais deviner (`unclear`, `no_method_or_reference`, `not_assessed`, `not_reported`), jamais de citation inventee. Les reponses negatives par defaut (`no`, `no_method_or_reference`, `not_assessed`, `not_applicable`, `not_reported`, `NR`) n'ont pas besoin de citation.
+3. **`finalize`** (Python): refuse le fichier tant qu'un item manque, est inconnu ou en double, ou qu'une reponse n'est pas dans la liste permise (l'agent doit corriger et relancer). Il verifie que chaque citation existe mot pour mot dans le PDF: une citation introuvable est retiree et l'item est marque `review_required`. Il ecrit `<article>.json` (screening vide, `validator_status=none`) puis regenere `summary.csv`, `summary.xlsx` et `binary.csv`.
+
+`review_required` vaut `true` si l'agent le demande, si la confiance est inferieure a 0,75, ou si une reponse non par defaut n'a aucune citation verifiee.
+
+### Lancer l'extraction
+1. Ouvrir Claude Code connecte a l'abonnement (app Claude Code, ou `claude` puis `/login` dans un terminal) et ouvrir la session **dans le dossier du depot** (l'agent et la commande sont charges au demarrage).
+2. Placer les PDF dans un dossier, nommes comme les identifiants des etudes (ex. `cov1063.pdf`).
+3. Lancer:
+
+```text
+/extract-articles pdf_input outputs_claude_agent
+```
+
+La commande saute les PDF deja traites (reprise apres une limite d'abonnement), lance un sous-agent par PDF, 3 a la fois, puis rapporte le nombre de reponses a revoir. Pour un seul article, demander a l'agent `review-extractor` avec le chemin du PDF. Les etapes Python se lancent aussi a la main:
+
+```powershell
+review-agent-io prepare ".\pdf_input\cov1063.pdf" --work agent_work
+review-agent-io finalize ".\pdf_input\cov1063.pdf" --work agent_work --out outputs_claude_agent
+```
+
+### Variante en ligne de commande: `--backend claude-cli`
+Le pipeline Python complet (avec screening, validateur et escalade) peut aussi utiliser l'abonnement via le CLI `claude -p` (voir "Backends Claude"). Pour la revue en cours, on utilise l'agent ci-dessus car il n'y a pas de screening et la configuration est gelee.
+
+### Sorties
+- `outputs_claude_agent/<article_id>.json`: format `ArticleResult` du pipeline (compatible `review-study-pages`, `review-model-benchmark`);
+- `summary.csv` / `summary.xlsx`, feuille `Review required`;
+- `binary.csv`: une ligne par article, items a choix unique en colonne categorielle, items a reponses multiples en colonnes 0/1 `item__option`.
+
+### Limites a connaitre
+- **Reproductibilite**: la temperature n'est pas reglable avec l'abonnement. Archiver l'ID complet du modele, la version de Claude Code (`claude --version`), le prompt (`.claude/agents/review-extractor.md`), la grille (`form_schema.py`) et les regles de decision.
+- **Volume**: un essai sur un article a consomme environ 89 000 tokens (sous-agent, Sonnet). Pour environ 1 485 articles restants, mesurer d'abord sur 3-5 articles avant de planifier: les limites de l'abonnement peuvent imposer plusieurs jours (la reprise est automatique), ou justifier une cle API / l'API Batch pour le corpus final.
+- **Pas de second modele**: pas de validateur ni d'escalade automatique; la fiabilite est mesuree par l'echantillon humain (section suivante).
+
+## Decisions a prendre et actions a faire
+
+### Decisions en attente
+1. **Regles de codage** (a trancher, par exemple par Florent, avant le gel du prompt):
+   - declaration ISB globale sans methode detaillee: `isb_explicit_no_method` ou `no_method_or_reference`?
+   - un seul capteur sur le sternum: le thorax est-il "utilise"?
+   - `number_shoulders` quand un seul bras est mesure (1, `NR`, autre?);
+   - rotation axiale alternative (NSAR) a cote de celle de l'ISB: quel codage dans les details de rotation?
+2. **Items a reponses multiples**: `*_translation_details` et `thorax_axes_orientation_details` sont traites comme a choix unique (la grille ne dit pas "Select all"). Confirmer.
+3. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
+4. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
+5. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
+6. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
+7. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
+8. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
+9. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
+
+### Actions a faire
+- [ ] Recuperer les 165 PDF de l'echantillon, nommes `cov<numero>.pdf`.
+- [ ] Envoyer `validation_study/human_extraction_rater_A.xlsx` et `_B.xlsx` aux deux evaluateurs (extraction en aveugle), puis consensus humain.
+- [ ] Appliquer les decisions 1 et 2 au prompt de l'agent et au guide des evaluateurs.
+- [ ] Mesurer la consommation sur 3-5 articles (`/extract-articles`).
+- [ ] Iterer sur developpement (39) puis reglage (29): `review-agreement --subset tuning`, 5 iterations maximum.
+- [ ] Geler la configuration (manifeste date: modele, version Claude Code, prompt, grille, regles). **Non implemente**: a ajouter.
+- [ ] Evaluer le jeu de test (97) une seule fois: `review-agreement --subset test --final-evaluation`.
+- [ ] Extraire le corpus restant; les domaines non aptes restent en verification humaine.
+- [ ] Optionnel: mode `--extraction-only` pour le pipeline API (aujourd'hui le screening y est toujours execute); tester `--backend anthropic` avec une vraie cle.
 
 ## Lecture ciblee pour reduire les tokens
 
