@@ -1,5 +1,7 @@
 # Review Extraction
 
+[English version](README.en.md)
+
 MVP pour extraire automatiquement des paramètres méthodologiques d'articles PDF dans une revue systématique, avec validation par un second agent indépendant.
 
 **Deux modes**: pipeline API (decrit ci-dessous) ou agent Claude Code sur abonnement, sans API et sans screening (voir la section "Deux modes de fonctionnement").
@@ -184,7 +186,7 @@ Notes:
 1. **Echantillon a priori** (avant tout travail sur le prompt): echantillon aleatoire stratifie de 10 %, scinde en developpement / reglage / test (40/30/100 mis a l'echelle), avec gabarits Excel vierges pour deux evaluateurs humains en aveugle:
 
 ```powershell
-review-sample .\pdf_input --out .alidation_study --strata-cols year_bin
+review-sample .\pdf_input --out .\validation_study --strata-cols year_bin
 ```
 
    Sorties: `validation_sample.csv`, `sample_manifest.json` (graine, tailles, hash de la population), `human_extraction_rater_A.xlsx` et `_B.xlsx` (listes deroulantes + onglet `Codebook`). Un echantillon existant n'est jamais retire de nouveau sans `--force`. `--results <dossier JSON>` permet de stratifier aussi sur les metadonnees (ex. `--strata-cols year_bin,population_type`).
@@ -206,9 +208,9 @@ review-binary --results .\outputs_claude_agent
 3. **Accord** (% exact + IC de Wilson, kappa de Cohen non pondere + IC 95 % bootstrap, seuils kappa >= 0,80 et accord >= 90 %, verdict par domaine):
 
 ```powershell
-review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset tuning --out .greement_tuning
-review-agreement --a rater_A.xlsx --b rater_B.xlsx --label human_vs_human --out .greement_human
-review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset test --final-evaluation --out .greement_test
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agent\binary.csv --sample .\validation_study\validation_sample.csv --subset tuning --out .\agreement_tuning
+review-agreement --a rater_A.xlsx --b rater_B.xlsx --label human_vs_human --out .\agreement_human
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agent\binary.csv --sample .\validation_study\validation_sample.csv --subset test --final-evaluation --out .\agreement_test
 ```
 
    Le sous-ensemble `test` exige `--final-evaluation` et ne peut etre evalue qu'une fois (fichier verrou). Un domaine est declare apte seulement si toutes ses variables evaluables passent les deux seuils.
