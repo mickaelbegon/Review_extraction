@@ -28,6 +28,17 @@ class FormSchemaTests(unittest.TestCase):
         self.assertIn("no_method_or_reference", prompt)
         self.assertIn("not_assessed", prompt)
 
+    def test_coding_rules_and_dont_know_option_are_in_the_form(self) -> None:
+        prompt = extraction_form_prompt()
+
+        self.assertIn("counts as an explicit ISB statement", prompt)
+        self.assertIn("only once an axis (coordinate) system is constructed", prompt)
+        origin = next(i for i in EXTRACTION_ITEMS if i.id == "scapula_scs_origin")
+        self.assertIn("i_dont_know", origin.allowed_answers)
+        rotations = next(i for i in EXTRACTION_ITEMS if i.id == "humerus_scapula_rotations")
+        self.assertIn("i_dont_know", rotations.allowed_answers)
+        self.assertIn("not_assessed", rotations.allowed_answers)
+
     def test_prompt_can_be_limited_to_selected_items(self) -> None:
         prompt = extraction_form_prompt(item_ids={"thorax_used"})
 

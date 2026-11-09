@@ -11,6 +11,7 @@ CHOICE_ASSESSMENT = [
     "isb_not_followed_alternative_described",
     "isb_not_followed_alternative_cited",
     "no_method_or_reference",
+    "i_dont_know",
 ]
 
 JOINT_ASSESSMENT = [*CHOICE_ASSESSMENT, "not_assessed"]
@@ -27,6 +28,24 @@ SEGMENT_CONSTRUCTION_DETAILS = [
 HUMERUS_ISB_CONSTRUCTION_OPTION = ["isb_option_1", "isb_option_2", "not_defined", "not_applicable", "not_reported"]
 JOINT_ROTATION_DETAILS = ["other_euler_sequence", "helical_angle", "other", "not_applicable", "not_reported"]
 JOINT_TRANSLATION_DETAILS = ["distal_coordinate_system", "joint_coordinate_system", "other", "not_applicable", "not_reported"]
+
+
+# Reviewer coding rules (ISB reviewer examples + decisions of the review team). Shown to the extractor before the form.
+CODING_RULES = """Coding rules (apply to every item):
+- Assess each item independently (origin, axes orientation, axes construction, rotations, translations), for each segment and each joint.
+- A general statement such as "ISB recommendations were followed" counts as an explicit ISB statement for ALL assessed segment and joint items. Then code each item separately:
+  * the method described for that item agrees with ISB -> isb_explicit_method_aligned;
+  * the method described differs from ISB -> isb_explicit_method_inconsistent;
+  * nothing allows the item to be checked against ISB -> isb_explicit_no_method.
+  If the statement concerns only particular methods (e.g. "joint rotations followed ISB"), apply it only to those. Never infer missing details from the statement.
+- No ISB statement: method described and aligned with ISB -> isb_not_explicit_method_aligned; alternative method described -> isb_not_followed_alternative_described; alternative only cited -> isb_not_followed_alternative_cited (do not check the cited article; a citation alone does not prove disagreement with ISB); nothing described or cited -> no_method_or_reference (a measurement system alone does not define an anatomical coordinate system).
+- i_dont_know ONLY for an unresolved contradiction (e.g. the text says one thing and a figure another for the same system); explain it in rationale_short. Never use it for plain absence of reporting.
+- not_assessed: the joint rotations or translations were not analysed at all.
+- Figures and supplementary methods may be used when they clearly define the same system as the reported results. Do not infer segment axes from the laboratory coordinate system. If several methods are reported, state which one each answer concerns.
+- <segment>_used = yes only once an axis (coordinate) system is constructed for that segment. A marker or sensor on the segment, without a constructed axis system, is not enough (e.g. a single sternal sensor without axes -> no).
+- Method comparison: if the study compares methods and ISB is among the methods tested, code it as ISB (data can then be expressed according to ISB).
+- Multiple-selection items: categories may overlap (a landmark-defined body plane is both body_or_segment_oriented and anatomical_landmarks; a fitted glenoid plane is both articular_surface_oriented and geometrical_features).
+- number_shoulders (study metadata): number of shoulders actually measured (1 per participant when only one side is measured); NR only when it cannot be determined."""
 
 
 @dataclass(frozen=True)
@@ -96,35 +115,35 @@ def build_extraction_items() -> list[ExtractionItem]:
                     theme=f"segment.{segment}",
                     question=f"Was the {segment} segment considered in the study?",
                     allowed_answers=["yes", "no", "unclear"],
-                    guidance="Answer yes only if the segment coordinate system or segment kinematics are clearly used.",
+                    guidance="Answer yes only once an axis (coordinate) system is constructed for the segment; a sensor or marker alone is not enough.",
                 ),
                 ExtractionItem(
                     id=f"{segment}_axes_orientation",
                     theme=f"segment.{segment}",
                     question=f"How does the study define {segment} axes orientation relative to ISB recommendations?",
                     allowed_answers=CHOICE_ASSESSMENT,
-                    guidance="Distinguish a global claim that ISB was followed from a reproducible segment-specific method.",
+                    guidance="A general ISB statement counts as explicit for this item; then check whether this segment axes orientation is described and agrees with ISB.",
                 ),
                 ExtractionItem(
                     id=f"{segment}_axes_construction",
                     theme=f"segment.{segment}",
                     question=f"How does the study construct the {segment} coordinate system axes relative to ISB recommendations?",
                     allowed_answers=CHOICE_ASSESSMENT,
-                    guidance="Check landmarks, cross-products, and anatomical/geometrical definitions. Ignore obvious typos if intent is clear.",
+                    guidance="Check landmarks, cross-products, and anatomical/geometrical definitions for this segment. Ignore obvious typos if intent is clear. Do not infer from a general ISB statement.",
                 ),
                 ExtractionItem(
                     id=f"{segment}_axes_construction_details",
                     theme=f"segment.{segment}",
                     question=f"If the {segment} axes construction differs from ISB recommendations, which construction approach is used?",
                     allowed_answers=SEGMENT_CONSTRUCTION_DETAILS,
-                    guidance="Select not_applicable when ISB recommendations were followed or the segment was not used. Select all supported alternatives when the method differs.",
+                    guidance="Select not_applicable when ISB recommendations were followed or the segment was not used. Select all supported alternatives when the method differs (categories may overlap).",
                 ),
                 ExtractionItem(
                     id=f"{segment}_scs_origin",
                     theme=f"segment.{segment}",
                     question=f"How does the study define the {segment} SCS origin relative to ISB recommendations?",
                     allowed_answers=CHOICE_ASSESSMENT,
-                    guidance="Look for the anatomical origin and whether it matches the ISB origin for this segment.",
+                    guidance="Look for the anatomical origin and whether it matches the ISB origin for this segment. Origin agreement does not establish agreement for the axes.",
                 ),
             ]
         )
@@ -163,21 +182,21 @@ def build_extraction_items() -> list[ExtractionItem]:
                     theme=f"joint.{joint_id}",
                     question=f"How are rotations computed for {label} relative to ISB recommendations?",
                     allowed_answers=JOINT_ASSESSMENT,
-                    guidance=f"The ISB Euler sequence for this joint is {EXPECTED_EULER[joint_id]}. Verify the reported sequence or alternative method.",
+                    guidance=f"The ISB Euler sequence for this joint is {EXPECTED_EULER[joint_id]}; sequence letters alone do not establish full agreement (axes and signs). Use not_assessed if rotations were not analysed. If methods are compared and ISB is one of them, code ISB.",
                 ),
                 ExtractionItem(
                     id=f"{joint_id}_rotation_details",
                     theme=f"joint.{joint_id}",
                     question=f"If rotations for {label} differ from ISB recommendations, which rotation approach is used?",
                     allowed_answers=JOINT_ROTATION_DETAILS,
-                    guidance="Use not_applicable when ISB recommendations were followed or rotations were not assessed. Select all supported alternatives when a different approach is described.",
+                    guidance="Use not_applicable when ISB recommendations were followed, rotations were not assessed, or ISB is among the compared methods. Select all supported alternatives when a different approach is described.",
                 ),
                 ExtractionItem(
                     id=f"{joint_id}_translations",
                     theme=f"joint.{joint_id}",
                     question=f"How are translations computed for {label} relative to ISB recommendations?",
                     allowed_answers=JOINT_ASSESSMENT,
-                    guidance="Check whether translations are reported, in which coordinate system, or not assessed.",
+                    guidance="Check the tracked point and the reference axes (ISB example for the glenohumeral joint: displacement of the humeral head centre relative to the scapula, expressed along the scapular axes). Use not_assessed if translations were not analysed.",
                 ),
                 ExtractionItem(
                     id=f"{joint_id}_translation_details",
@@ -198,6 +217,8 @@ EXTRACTION_ITEMS = build_extraction_items()
 def extraction_form_prompt(item_ids: set[str] | list[str] | None = None) -> str:
     selected_item_ids = set(item_ids) if item_ids is not None else None
     lines = [
+        CODING_RULES,
+        "",
         "Use this systematic-review extraction form.",
         "Return one answer per item. Use only allowed answer identifiers.",
         "If evidence is missing or ambiguous, prefer 'unclear', 'no_method_or_reference', or 'not_assessed' over guessing.",

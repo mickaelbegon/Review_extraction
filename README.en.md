@@ -90,25 +90,29 @@ The full Python pipeline (with screening, validator and escalation) can also use
 
 ## Open decisions and actions
 
+### Decisions made (coding rules)
+Florent's answers and the "ISB data extraction examples for reviewers" document, built into `CODING_RULES` (`review_extraction/form_schema.py`), which the extractor sees before the form:
+1. **Global ISB statement without a method**: "ISB recommendations explicitly stated, but no method described" (`isb_explicit_no_method`). A general statement ("ISB recommendations were followed") counts as an explicit statement for all segment and joint items, to be coded item by item without inferring missing details.
+2. **`<segment>_used`**: `yes` as soon as an axis system is constructed for the segment, not before (a single sternal sensor without axes gives `no`).
+3. **`number_shoulders`**: number of shoulders actually measured (1 per participant if one side only); `NR` only if it cannot be determined.
+4. **Alternative rotation (NSAR) / method comparison**: if ISB is among the methods tested, code ISB (the data can be expressed according to ISB).
+5. **New option `i_dont_know`** (segment and joint items): unresolved contradiction (e.g. text versus figure), never for plain absence of description; `not_assessed` when rotations or translations were not analyzed. Categories of multiple-response items may overlap.
+
 ### Open decisions
-1. **Coding rules** (to be settled, e.g. by Florent, before freezing the prompt):
-   - a global ISB statement without a detailed method: `isb_explicit_no_method` or `no_method_or_reference`?
-   - a single sensor on the sternum: is the thorax "used"?
-   - `number_shoulders` when only one arm is measured (1, `NR`, other?);
-   - an alternative axial rotation (NSAR) alongside the ISB one: how to code it in the rotation details?
-2. **Multiple-response items**: `*_translation_details` and `thorax_axes_orientation_details` are treated as single-choice (the form does not say "Select all"). Confirm.
-3. **Domain suitability rule**: the protocol does not specify it; the current implementation is that all evaluable variables in the domain pass kappa >= 0.80 and agreement >= 90%. Rare binary variables risk failing. Confirm or relax.
-4. **Kappa CI**: percentile bootstrap (1,000 replicates) instead of Donner and Eliasziw (dichotomous only). Confirm the wording in the methods.
-5. **Size and strata**: the drawn sample is 165/1650 (39/29/97) rather than 170 (40/30/100), with the single stratum `year_bin`. Confirm, or add a stratum (population, measurement method).
-6. **"Prespecified" tuning criteria**: define what stops the iteration (e.g. per-domain thresholds on the tuning set) before the first iteration; maximum 5.
-7. **Configuration to freeze**: model (`claude-sonnet-5-5` or another), reasoning effort, subscription or API for the final corpus.
-8. **Human consensus**: who is the third reviewer, and how the two reviewers are calibrated.
-9. **Repository visibility**: public; `validation_study/validation_sample.csv` publishes the test-set list. Make the repository private or remove this file if the test set must stay blinded.
+1. **Multiple-response items**: `*_translation_details` and `thorax_axes_orientation_details` are treated as single-choice (the form does not say "Select all"). Confirm.
+2. **Domain suitability rule**: the protocol does not specify it; the current implementation is that all evaluable variables in the domain pass kappa >= 0.80 and agreement >= 90%. Rare binary variables risk failing. Confirm or relax.
+3. **Kappa CI**: percentile bootstrap (1,000 replicates) instead of Donner and Eliasziw (dichotomous only). Confirm the wording in the methods.
+4. **Size and strata**: the drawn sample is 165/1650 (39/29/97) rather than 170 (40/30/100), with the single stratum `year_bin`. Confirm, or add a stratum (population, measurement method).
+5. **"Prespecified" tuning criteria**: define what stops the iteration (e.g. per-domain thresholds on the tuning set) before the first iteration; maximum 5.
+6. **Configuration to freeze**: model (`claude-sonnet-5-5` or another), reasoning effort, subscription or API for the final corpus.
+7. **Human consensus**: who is the third reviewer, and how the two reviewers are calibrated.
+8. **Repository visibility**: public; `validation_study/validation_sample.csv` publishes the test-set list. Make the repository private or remove this file if the test set must stay blinded.
 
 ### Actions to do
 - [ ] Obtain the 165 sample PDFs, named `cov<number>.pdf`.
 - [ ] Send `validation_study/human_extraction_rater_A.xlsx` and `_B.xlsx` to the two reviewers (blinded extraction), then build the human consensus.
-- [ ] Apply decisions 1 and 2 to the agent prompt and to the reviewers' guide.
+- [x] Coding rules built into the agent prompt (`CODING_RULES`).
+- [ ] Give the same rules (ISB document and `CODING_RULES`) to the two human reviewers, so that agreement measures the same form.
 - [ ] Measure consumption on 3-5 articles (`/extract-articles`).
 - [ ] Iterate on development (39) then tuning (29): `review-agreement --subset tuning`, 5 iterations maximum.
 - [ ] Freeze the configuration (dated manifest: model, Claude Code version, prompt, form, rules). **Not implemented**: to be added.

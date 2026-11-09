@@ -90,25 +90,29 @@ Le pipeline Python complet (avec screening, validateur et escalade) peut aussi u
 
 ## Decisions a prendre et actions a faire
 
+### Decisions prises (regles de codage)
+Reponses de Florent et document "ISB data extraction examples for reviewers", integres dans `CODING_RULES` (`review_extraction/form_schema.py`), affiche a l'extracteur avant la grille:
+1. **Declaration ISB globale sans methode**: "ISB recommendations explicitly stated, but no method described" (`isb_explicit_no_method`). Un enonce general ("ISB recommendations were followed") compte comme declaration explicite pour tous les items de segments et d'articulations, a coder item par item sans inferer les details manquants.
+2. **`<segment>_used`**: `yes` des qu'un systeme d'axes est construit pour le segment, pas avant (un capteur seul sur le sternum, sans axes, donne `no`).
+3. **`number_shoulders`**: nombre d'epaules reellement mesurees (1 par participant si un seul cote); `NR` seulement si indeterminable.
+4. **Rotation alternative (NSAR) / comparaison de methodes**: si ISB fait partie des methodes testees, coder ISB (les donnees peuvent etre exprimees selon l'ISB).
+5. **Nouvelle option `i_dont_know`** (items de segments et d'articulations): contradiction non resolue (ex. texte contre figure), jamais pour une simple absence de description; `not_assessed` quand rotations ou translations ne sont pas analysees. Les categories des items a choix multiples peuvent se chevaucher.
+
 ### Decisions en attente
-1. **Regles de codage** (a trancher, par exemple par Florent, avant le gel du prompt):
-   - declaration ISB globale sans methode detaillee: `isb_explicit_no_method` ou `no_method_or_reference`?
-   - un seul capteur sur le sternum: le thorax est-il "utilise"?
-   - `number_shoulders` quand un seul bras est mesure (1, `NR`, autre?);
-   - rotation axiale alternative (NSAR) a cote de celle de l'ISB: quel codage dans les details de rotation?
-2. **Items a reponses multiples**: `*_translation_details` et `thorax_axes_orientation_details` sont traites comme a choix unique (la grille ne dit pas "Select all"). Confirmer.
-3. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
-4. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
-5. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
-6. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
-7. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
-8. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
-9. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
+1. **Items a reponses multiples**: `*_translation_details` et `thorax_axes_orientation_details` sont traites comme a choix unique (la grille ne dit pas "Select all"). Confirmer.
+2. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
+3. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
+4. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
+5. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
+6. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
+7. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
+8. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
 
 ### Actions a faire
 - [ ] Recuperer les 165 PDF de l'echantillon, nommes `cov<numero>.pdf`.
 - [ ] Envoyer `validation_study/human_extraction_rater_A.xlsx` et `_B.xlsx` aux deux evaluateurs (extraction en aveugle), puis consensus humain.
-- [ ] Appliquer les decisions 1 et 2 au prompt de l'agent et au guide des evaluateurs.
+- [x] Regles de codage integrees au prompt de l'agent (`CODING_RULES`).
+- [ ] Donner les memes regles (document ISB et `CODING_RULES`) aux deux evaluateurs humains, pour que l'accord mesure la meme grille.
 - [ ] Mesurer la consommation sur 3-5 articles (`/extract-articles`).
 - [ ] Iterer sur developpement (39) puis reglage (29): `review-agreement --subset tuning`, 5 iterations maximum.
 - [ ] Geler la configuration (manifeste date: modele, version Claude Code, prompt, grille, regles). **Non implemente**: a ajouter.
