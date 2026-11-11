@@ -15,6 +15,7 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -184,7 +185,12 @@ def _is_default(value: str | list[str]) -> bool:
 
 
 def _normalize(text: str) -> str:
-    text = text.replace("­", "").replace("-\n", "")
+    """Normalize PDF text and quotes before the verbatim check: ligatures (fi/fl), odd plus signs, dash variants."""
+    text = unicodedata.normalize("NFKC", text)
+    text = text.replace("\u00ad", "").replace("-\n", "")
+    text = text.replace("\u00fe", "+")  # font-mapped plus sign extracted as "thorn"
+    for dash in ("\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2212"):
+        text = text.replace(dash, "-")
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
