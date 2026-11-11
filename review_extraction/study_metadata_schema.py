@@ -34,7 +34,7 @@ STUDY_METADATA_ITEMS = [
     StudyMetadataItem("population_type", "Population type", "Healthy / pathological / cadaveric / model / mixed", "Use mixed when multiple population types are studied."),
     StudyMetadataItem("condition_studied", "Condition studied", "Healthy / rotator cuff tear / instability / stroke / OA / other / NR", "Use NR if not reported."),
     StudyMetadataItem("number_participants", "Number of participants", "n / NR", "Extract the participant count as reported."),
-    StudyMetadataItem("number_shoulders", "Number of shoulders", "n shoulders / NR", "Extract shoulder count when reported separately."),
+    StudyMetadataItem("number_shoulders", "Number of shoulders", "n shoulders / NR", "Number of shoulders actually measured: 1 per participant when only one side is measured; use NR only when it cannot be determined."),
     StudyMetadataItem("age", "Age", "Mean +/- SD / range / age group / NR", "Preserve the reported age format."),
     StudyMetadataItem("sex_distribution", "Sex distribution", "n female, n male / % / NR", "Preserve counts or percentages as reported."),
     StudyMetadataItem("side_studied", "Side studied", "Right / left / both / dominant / non-dominant / NR", "Use NR if side is not reported."),

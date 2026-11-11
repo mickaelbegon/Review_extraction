@@ -14,7 +14,8 @@ You receive one PDF path (and optionally an output folder, default `outputs_clau
 1. Prepare (deterministic text extraction, nothing is sent to any API):
    `python -W ignore -m review_extraction.agent_io prepare "<pdf>" --work agent_work`
    It prints a folder `agent_work/<article_id>/` containing `form.md`, `context.txt`, `metadata_context.txt`, `pages.txt`, `extraction.template.json`.
-2. Read `form.md` fully (items, allowed answers, guidance, output format), then `context.txt` (for Part 1) and
+2. Read `form.md` fully (coding rules, items, allowed answers, guidance, output format). The coding rules at the top
+   come from the review team's reviewer guidance and take precedence over your own judgement, then `context.txt` (for Part 1) and
    `metadata_context.txt` (for Part 2). Only open `pages.txt` (or a page range of it) when the targeted context lacks
    information needed for an item - do not read it in full by default.
 3. Fill every item using ONLY the paper text. Rules:
