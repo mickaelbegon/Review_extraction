@@ -57,7 +57,7 @@ The LLM is a **Claude Code subagent** (`.claude/agents/review-extractor.md`) run
 2. **The agent reads** `form.md` and then the context, and fills `extraction.json`: for each item, an answer among the allowed identifiers (a list for multiple-response items), a confidence, an exact quote with page number, a short rationale and `needs_human_review`. Rules: never guess (`unclear`, `no_method_or_reference`, `not_assessed`, `not_reported`), never invent a quote. Default negative answers (`no`, `no_method_or_reference`, `not_assessed`, `not_applicable`, `not_reported`, `NR`) need no quote.
 3. **`finalize`** (Python): rejects the file while an item is missing, unknown or duplicated, or while an answer is not in the allowed list (the agent must fix it and rerun). It checks that every quote appears verbatim in the PDF: a quote that cannot be found is dropped and the item is flagged `review_required`. It writes `<article>.json` (empty screening, `validator_status=none`) and then regenerates `summary.csv`, `summary.xlsx` and `binary.csv`.
 
-`review_required` is `true` if the agent asks for it, if confidence is below 0.75, or if a non-default answer has no verified quote.
+`review_required` is `true` if the agent asks for it or if a non-default answer has no verified quote. The agent's confidence is kept for information but does not trigger review: it proved unstable between runs of the same article.
 
 ### Running the extraction
 1. Open Claude Code signed in to your subscription (the Claude Code app, or `claude` then `/login` in a terminal) and open the session **in the repository folder** (the agent and the command are loaded at startup).

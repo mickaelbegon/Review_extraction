@@ -24,7 +24,6 @@ from .export import write_csv_summary, write_xlsx_summary
 from .form_schema import EXTRACTION_ITEMS, consistency_errors, extraction_form_prompt
 from .models import ArticleResult, Evidence, ExtractedAnswer, FinalAnswer, StudyMetadataField
 from .pdf_ingest import extract_pdf_text
-from .reconcile import REVIEW_THRESHOLD
 from .study_metadata_schema import STUDY_METADATA_ITEMS, study_metadata_prompt
 from .variables import result_to_row, write_wide_csv
 from .targeted_context import build_extraction_context, build_study_metadata_context
@@ -175,9 +174,9 @@ def _final_answer(answer: ExtractedAnswer, pages: dict[int, str], whole: str) ->
         final_confidence=answer.confidence,
         evidence=verified,
         rationale_short=answer.rationale_short + note,
-        review_required=answer.needs_human_review
-        or answer.confidence < REVIEW_THRESHOLD
-        or (not verified and not _is_default(answer.answer)),
+        # The agent's self-reported confidence is unstable between runs, so it is kept for information only
+        # and does not trigger review: only the agent's explicit request and unverified evidence do.
+        review_required=answer.needs_human_review or (not verified and not _is_default(answer.answer)),
     )
 
 

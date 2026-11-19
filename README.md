@@ -57,7 +57,7 @@ Le LLM est un **sous-agent Claude Code** (`.claude/agents/review-extractor.md`) 
 2. **L'agent lit** `form.md` puis le contexte, et remplit `extraction.json`: pour chaque item une reponse parmi les identifiants permis (liste pour les items a reponses multiples), une confiance, une citation exacte avec numero de page, une courte justification et `needs_human_review`. Regles: ne jamais deviner (`unclear`, `no_method_or_reference`, `not_assessed`, `not_reported`), jamais de citation inventee. Les reponses negatives par defaut (`no`, `no_method_or_reference`, `not_assessed`, `not_applicable`, `not_reported`, `NR`) n'ont pas besoin de citation.
 3. **`finalize`** (Python): refuse le fichier tant qu'un item manque, est inconnu ou en double, ou qu'une reponse n'est pas dans la liste permise (l'agent doit corriger et relancer). Il verifie que chaque citation existe mot pour mot dans le PDF: une citation introuvable est retiree et l'item est marque `review_required`. Il ecrit `<article>.json` (screening vide, `validator_status=none`) puis regenere `summary.csv`, `summary.xlsx` et `binary.csv`.
 
-`review_required` vaut `true` si l'agent le demande, si la confiance est inferieure a 0,75, ou si une reponse non par defaut n'a aucune citation verifiee.
+`review_required` vaut `true` si l'agent le demande ou si une reponse non par defaut n'a aucune citation verifiee. La confiance de l'agent est conservee a titre indicatif mais ne declenche pas de revue: elle s'est montree instable d'un passage a l'autre sur un meme article.
 
 ### Lancer l'extraction
 1. Ouvrir Claude Code connecte a l'abonnement (app Claude Code, ou `claude` puis `/login` dans un terminal) et ouvrir la session **dans le dossier du depot** (l'agent et la commande sont charges au demarrage).
