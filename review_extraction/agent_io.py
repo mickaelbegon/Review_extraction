@@ -23,7 +23,8 @@ from pydantic import ValidationError
 from .export import write_csv_summary, write_xlsx_summary
 from .form_schema import EXTRACTION_ITEMS, consistency_errors, extraction_form_prompt
 from .models import ArticleResult, Evidence, ExtractedAnswer, FinalAnswer, StudyMetadataField
-from .pdf_ingest import extract_pdf_text
+from .highlight import write_highlighted_pdf
+from .pdf_ingest import FigurePage, extract_pdf_text, find_figure_pages, render_pages
 from .study_metadata_schema import STUDY_METADATA_ITEMS, study_metadata_prompt
 from .variables import result_to_row, write_wide_csv
 from .targeted_context import build_extraction_context, build_study_metadata_context
@@ -66,10 +67,14 @@ def prepare(pdf: Path, work_dir: Path) -> Path:
     (folder / "context.txt").write_text(context.text, encoding="utf-8")
     (folder / "metadata_context.txt").write_text(metadata_context.text, encoding="utf-8")
     (folder / "pages.txt").write_text("\n\n".join(f"[PAGE {p.page}]\n{p.text}" for p in pages), encoding="utf-8")
+    figures = find_figure_pages(pdf)
+    render_pages(pdf, [f.page for f in figures], folder / "figures")
     form = "\n\n".join(
         [
             "# Part 1 - methodological parameters (read context.txt)",
             extraction_form_prompt(),
+            "# Figures (open the images, see below)",
+            figures_section(figures),
             "# Part 2 - study metadata (read metadata_context.txt)",
             study_metadata_prompt(),
             "# Output format",
@@ -85,6 +90,23 @@ def prepare(pdf: Path, work_dir: Path) -> Path:
     }
     (folder / "extraction.template.json").write_text(json.dumps(template, indent=1), encoding="utf-8")
     return folder
+
+
+def figures_section(figures: list[FigurePage]) -> str:
+    if not figures:
+        return "No figure caption was detected in this PDF."
+    lines = [
+        "Figures often show marker/landmark placement and segment or joint axes that the text does not describe.",
+        "Open every `high` priority image below with the Read tool before answering the segment and joint items; open",
+        "`low` priority images only if an item is still unresolved. When a figure is your evidence, quote verbatim text",
+        "printed on that page (preferably the caption), give that page number, and start `relevance` with `Figure:` followed",
+        "by what the figure shows (e.g. `Figure: humerus Y axis drawn from the epicondyle midpoint to the GH centre`).",
+        "",
+    ]
+    for fig in figures:
+        lines.append(f"- figures/page_{fig.page}.png (page {fig.page}, priority {fig.priority})")
+        lines += [f"  caption: {c}" for c in fig.captions]
+    return "\n".join(lines)
 
 
 def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | None, list[str]]:
@@ -132,6 +154,9 @@ def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | 
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{result.article_id}.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    # Highlighted copy of the PDF (the source PDF is never modified).
+    (out_dir / "highlighted").mkdir(exist_ok=True)
+    write_highlighted_pdf(pdf, result, out_dir / "highlighted" / f"{result.article_id}.pdf")
     refresh_summaries(out_dir)
     return result, []
 

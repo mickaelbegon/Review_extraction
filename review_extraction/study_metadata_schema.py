@@ -19,6 +19,40 @@ STUDY_METADATA_ITEMS = [
     StudyMetadataItem("journal", "Journal", "Text", "Journal or source title."),
     StudyMetadataItem("doi", "DOI", "DOI / NR", "Use NR if no DOI is reported."),
     StudyMetadataItem(
+        "first_author_affiliation",
+        "First author affiliation",
+        "Department / institution / country",
+        "From the author affiliation list (title page, footnote or end matter). If the first author has several "
+        "affiliations, give the first one. Keep the department or laboratory as printed. NR if not printed.",
+    ),
+    StudyMetadataItem(
+        "last_author_affiliation",
+        "Last author affiliation",
+        "Department / institution / country",
+        "Same rule for the last listed author (often the senior author). NR if not printed.",
+    ),
+    StudyMetadataItem(
+        "affiliation_institutions",
+        "All author institutions",
+        "Institution | institution | ...",
+        "Every distinct institution (university, hospital, research centre, company) of all authors, short official "
+        "name, separated by ' | ', in order of first appearance.",
+    ),
+    StudyMetadataItem(
+        "affiliation_departments",
+        "All author departments / laboratories",
+        "Department | department | ...",
+        "Every distinct department, school, faculty or laboratory of all authors, as printed, separated by ' | '. "
+        "NR if affiliations give no department.",
+    ),
+    StudyMetadataItem(
+        "affiliation_countries",
+        "All author countries",
+        "Country | country | ...",
+        "Every distinct country of all author affiliations, English short name (e.g. USA, UK, Netherlands), separated "
+        "by ' | ', in order of first appearance. Infer the country from the city or institution only when it is not printed.",
+    ),
+    StudyMetadataItem(
         "study_design_purpose",
         "Study design / study purpose",
         "Methodological / validation / experimental / clinical / normative / modelling / other",

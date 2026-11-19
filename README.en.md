@@ -110,17 +110,65 @@ The "ISB shoulder kinematics - Data extraction guide" (reference instructions), 
 7. **Repository visibility**: public; `validation_study/validation_sample.csv` publishes the test-set list. Make the repository private or remove this file if the test set must stay blinded.
 
 ### Actions to do
-- [ ] Obtain the 165 sample PDFs, named `cov<number>.pdf`.
-- [ ] Send `validation_study/human_extraction_rater_A.xlsx` and `_B.xlsx` to the two reviewers (blinded extraction), then build the human consensus.
+- [x] Obtain the 165 sample PDFs (`review-validation match`: 165/165 matched, titles checked in the PDF).
+- [x] Send the templates and the extraction guide to the two reviewers.
 - [x] Coding rules built into the agent prompt (`CODING_RULES`).
 - [x] Reviewer templates regenerated with the guide's form and a `Coding rules` sheet (same draw).
-- [ ] Send the extraction guide to the two reviewers along with the templates.
-- [ ] Measure consumption on 3-5 articles (`/extract-articles`).
-- [ ] Iterate on development (39) then tuning (29): `review-agreement --subset tuning`, 5 iterations maximum.
-- [ ] Freeze the configuration (dated manifest: model, Claude Code version, prompt, form, rules). **Not implemented**: to be added.
-- [ ] Evaluate the test set (97) once: `review-agreement --subset test --final-evaluation`.
+- [x] Figure reading, author affiliations and highlighted PDFs.
+- [ ] Extract the 165 articles once with the frozen configuration (`/extract-articles pdf_validation outputs_validation`).
+- [ ] Export `ai_extraction.xlsx` (`review-validation export`) and compare it with the human consensus (`review-agreement`).
+- [ ] Validate `validation_study/journal_classification.csv`.
 - [ ] Extract the remaining corpus; domains that are not suitable stay under human verification.
 - [ ] Optional: an `--extraction-only` mode for the API pipeline (today screening always runs there); test `--backend anthropic` with a real key.
+
+## Extraction of the validation sample (165 articles)
+
+The 165 sampled articles have already been sent to the human reviewers. There is no further iteration with them:
+the current configuration (model, form, guide rules, prompt) is frozen and the 165 articles are extracted once, over
+several sessions if the subscription limits require it.
+
+1. Match the PDFs to the sample ids (source PDFs are neither renamed nor modified):
+
+```bash
+review-validation match --pdf-dir "<folder of included PDFs>"
+```
+
+   The Covidence title is compared with the file name (truncated title), then year and first author break ties;
+   otherwise the title is searched in the text of the first pages. Copies go to `pdf_validation/<article_id>.pdf`
+   (local, not versioned) and the report to `validation_study/pdf_matching.csv`.
+
+2. Extract in Claude Code (resumes where it stopped):
+
+```text
+/extract-articles pdf_validation outputs_validation
+```
+
+3. Export the AI workbook:
+
+```bash
+review-validation export
+```
+
+   `outputs_validation/ai_extraction.xlsx` contains:
+   - `Extraction`: same layout as the reviewer templates (`article_id`, `study_label`, variables), so
+     `review-agreement --a outputs_validation/ai_extraction.xlsx --b <human consensus>.xlsx` compares them directly;
+   - `To review`: flagged answers with quote, page and rationale;
+   - `Evidence`: every quote (quotes taken from a figure have a relevance starting with `Figure:`);
+   - `Study metadata`: Covidence bibliographic data, journal class, extracted metadata and affiliations.
+
+What the agent does beyond the text:
+- **Figures**: `prepare` detects pages with a figure caption (or a large image or vector drawing) and renders them as
+  PNG; figures whose caption mentions axes, frames, markers or set-up are high priority and the agent must open them.
+  Evidence from a figure quotes text printed on that page (the caption), which stays verifiable.
+- **Affiliations**: first and last author affiliation (department / institution / country), all institutions, all
+  departments and all countries of the authors, read from the PDF (no external service).
+- **Highlighted PDFs**: `finalize` writes a copy `outputs_validation/highlighted/<article_id>.pdf` where each quote is
+  highlighted (one colour per domain, red when flagged) with an `item: answer` note. The source PDF is not modified.
+
+Journal class: `validation_study/journal_classification.csv` proposes a primary (and optional secondary) class for each
+of the 377 journals of the corpus: biomechanics and movement science, clinical, engineering and sensors, computer
+science/vision/AI, ergonomics, sport science, multidisciplinary, other. To be validated by the team before the
+readership analysis.
 
 ## Targeted reading to reduce tokens
 

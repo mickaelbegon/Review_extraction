@@ -83,14 +83,16 @@ def write_wide_csv(rows: list[dict[str, str]], path: Path) -> None:
 
 
 def read_wide_table(path: Path) -> dict[str, dict[str, str]]:
-    """Read a wide CSV or XLSX (first sheet) keyed by article_id. Blank cells are kept as ''."""
+    """Read a wide CSV or XLSX (sheet "Extraction", else the first sheet) keyed by article_id. Blank cells are kept as ''."""
     if path.suffix.lower() in {".xlsx", ".xlsm"}:
         from openpyxl import load_workbook
 
-        sheet = load_workbook(path, read_only=True, data_only=True).worksheets[0]
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        sheet = workbook["Extraction"] if "Extraction" in workbook.sheetnames else workbook.worksheets[0]
         rows_iter = sheet.iter_rows(values_only=True)
         header = [str(c).strip() if c is not None else "" for c in next(rows_iter)]
         records = [dict(zip(header, ("" if c is None else _cell(c) for c in row))) for row in rows_iter]
+        workbook.close()
     else:
         with path.open(newline="", encoding="utf-8-sig") as handle:
             records = list(csv.DictReader(handle))

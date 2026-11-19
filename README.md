@@ -110,17 +110,65 @@ Guide "ISB shoulder kinematics - Data extraction guide" (consignes de reference)
 7. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
 
 ### Actions a faire
-- [ ] Recuperer les 165 PDF de l'echantillon, nommes `cov<numero>.pdf`.
-- [ ] Envoyer `validation_study/human_extraction_rater_A.xlsx` et `_B.xlsx` aux deux evaluateurs (extraction en aveugle), puis consensus humain.
+- [x] Recuperer les 165 PDF de l'echantillon (`review-validation match`: 165/165 associes, titres verifies dans le PDF).
+- [x] Envoyer les gabarits et le guide d'extraction aux deux evaluateurs.
 - [x] Regles de codage integrees au prompt de l'agent (`CODING_RULES`).
 - [x] Gabarits des evaluateurs regeneres avec la grille du guide et un onglet `Coding rules` (meme tirage).
-- [ ] Envoyer aux deux evaluateurs le guide d'extraction avec les gabarits.
-- [ ] Mesurer la consommation sur 3-5 articles (`/extract-articles`).
-- [ ] Iterer sur developpement (39) puis reglage (29): `review-agreement --subset tuning`, 5 iterations maximum.
-- [ ] Geler la configuration (manifeste date: modele, version Claude Code, prompt, grille, regles). **Non implemente**: a ajouter.
-- [ ] Evaluer le jeu de test (97) une seule fois: `review-agreement --subset test --final-evaluation`.
+- [x] Lecture des figures, affiliations des auteurs et PDF surlignes.
+- [ ] Extraire les 165 articles une seule fois avec la configuration gelee (`/extract-articles pdf_validation outputs_validation`).
+- [ ] Exporter `ai_extraction.xlsx` (`review-validation export`) et le comparer au consensus humain (`review-agreement`).
+- [ ] Valider `validation_study/journal_classification.csv`.
 - [ ] Extraire le corpus restant; les domaines non aptes restent en verification humaine.
 - [ ] Optionnel: mode `--extraction-only` pour le pipeline API (aujourd'hui le screening y est toujours execute); tester `--backend anthropic` avec une vraie cle.
+
+## Extraction de l'echantillon de validation (165 articles)
+
+Les 165 articles de l'echantillon ont deja ete envoyes aux evaluateurs humains. Il n'y a plus d'iteration avec eux:
+la configuration actuelle (modele, grille, regles du guide, prompt) est gelee et les 165 articles sont extraits une
+seule fois, sur plusieurs sessions si les limites de l'abonnement l'imposent.
+
+1. Associer les PDF aux identifiants de l'echantillon (les PDF sources ne sont ni renommes ni modifies):
+
+```bash
+review-validation match --pdf-dir "<dossier des PDF inclus>"
+```
+
+   Le titre Covidence est compare au nom du fichier (titre tronque), puis l'annee et le premier auteur departagent les
+   doublons; sinon le titre est cherche dans le texte des premieres pages. Les copies vont dans `pdf_validation/<article_id>.pdf`
+   (local, non versionne) et le rapport dans `validation_study/pdf_matching.csv`.
+
+2. Extraire dans Claude Code (reprend automatiquement la ou il s'est arrete):
+
+```text
+/extract-articles pdf_validation outputs_validation
+```
+
+3. Exporter le classeur de l'IA:
+
+```bash
+review-validation export
+```
+
+   `outputs_validation/ai_extraction.xlsx` contient:
+   - `Extraction`: meme disposition que les gabarits des evaluateurs (`article_id`, `study_label`, variables), donc
+     `review-agreement --a outputs_validation/ai_extraction.xlsx --b <consensus humain>.xlsx` compare directement;
+   - `To review`: reponses signalees, avec citation, page et justification;
+   - `Evidence`: toutes les citations (celles tirees d'une figure ont une pertinence qui commence par `Figure:`);
+   - `Study metadata`: donnees bibliographiques de Covidence, classe de la revue, metadonnees et affiliations extraites.
+
+Ce que fait l'agent en plus du texte:
+- **Figures**: `prepare` detecte les pages avec une legende de figure (ou une grande image ou un dessin vectoriel) et
+  les rend en PNG; les figures dont la legende evoque axes, reperes, marqueurs ou montage sont prioritaires et l'agent
+  doit les ouvrir. Une preuve tiree d'une figure cite le texte imprime sur la page (legende), ce qui reste verifiable.
+- **Affiliations**: affiliation du premier et du dernier auteur (departement / institution / pays), toutes les
+  institutions, tous les departements et tous les pays des auteurs, lus dans le PDF (pas de service externe).
+- **PDF surlignes**: `finalize` ecrit une copie `outputs_validation/highlighted/<article_id>.pdf` ou chaque citation
+  est surlignee (couleur par domaine, rouge si a revoir) avec une note `item: reponse`. Le PDF source n'est pas modifie.
+
+Classe des revues: `validation_study/journal_classification.csv` propose une classe principale (et eventuellement
+secondaire) pour chacune des 377 revues du corpus: biomecanique et science du mouvement, clinique, ingenierie et
+capteurs, informatique/vision/IA, ergonomie, science du sport, multidisciplinaire, autre. Proposition a valider par
+l'equipe avant l'analyse par lectorat.
 
 ## Lecture ciblee pour reduire les tokens
 

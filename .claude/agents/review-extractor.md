@@ -14,11 +14,16 @@ You receive one PDF path (and optionally an output folder, default `outputs_clau
 1. Prepare (deterministic text extraction, nothing is sent to any API):
    `python -W ignore -m review_extraction.agent_io prepare "<pdf>" --work agent_work`
    It prints a folder `agent_work/<article_id>/` containing `form.md`, `context.txt`, `metadata_context.txt`, `pages.txt`, `extraction.template.json`.
+   It also renders the PDF pages that hold figures to `figures/page_<n>.png` (listed in the Figures section of `form.md`).
 2. Read `form.md` fully (coding rules, items, allowed answers, guidance, output format). The coding rules at the top
    come from the review team's reviewer guidance and take precedence over your own judgement, then `context.txt` (for Part 1) and
    `metadata_context.txt` (for Part 2). Only open `pages.txt` (or a page range of it) when the targeted context lacks
    information needed for an item - do not read it in full by default.
-3. Fill every item using ONLY the paper text. Rules:
+   Then open the figure images as the Figures section of `form.md` says (all `high` priority ones; `low` ones only if
+   an item is still unresolved): marker placement and axis drawings are often only shown in figures.
+   For the author affiliations (Part 2), check the title page or footnotes in `pages.txt` (pages 1-2) and the end
+   matter if `metadata_context.txt` does not show them.
+3. Fill every item using ONLY the paper (text and figures). Rules:
    - Use only the allowed answer identifiers; multi-response items take a list.
    - Default/negative answers (`no`, `no_method_or_reference`, `not_assessed`, `not_applicable`, `not_reported`, `NR`)
      need no quote. A segment or joint the paper does not use or report: use the form's default for each item
