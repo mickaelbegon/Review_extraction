@@ -1,0 +1,378 @@
+journal,n_included,n_sample,journal_class,secondary_class,confidence,rationale
+JOURNAL OF BIOMECHANICS,139,17,biomechanics_movement_science,,high,biomechanics
+CLINICAL BIOMECHANICS,100,10,biomechanics_movement_science,clinical_medicine,high,clinical biomechanics
+JOURNAL OF SHOULDER AND ELBOW SURGERY,79,7,clinical_medicine,,high,surgery
+JOURNAL OF ELECTROMYOGRAPHY AND KINESIOLOGY,53,5,biomechanics_movement_science,,high,"electromyography, kinesiology"
+GAIT & POSTURE,50,5,biomechanics_movement_science,,high,gait and posture
+JOURNAL OF APPLIED BIOMECHANICS,37,1,biomechanics_movement_science,sport_science,high,applied biomechanics
+SENSORS,31,2,engineering_sensors,,high,"sensors, MDPI"
+APPLIED ERGONOMICS,31,3,ergonomics_human_factors,clinical_medicine,high,ergonomics
+SPORTS BIOMECHANICS,30,3,biomechanics_movement_science,sport_science,high,sports biomechanics
+AMERICAN JOURNAL OF SPORTS MEDICINE,28,2,clinical_medicine,sport_science,high,sports medicine
+PLOS ONE,27,0,multidisciplinary,,high,general science
+HUMAN MOVEMENT SCIENCE,24,3,biomechanics_movement_science,,high,human movement science
+COMPUTER METHODS IN BIOMECHANICS AND BIOMEDICAL ENGINEERING,23,3,engineering_sensors,biomechanics_movement_science,high,"computational biomechanics, biomedical engineering"
+JOURNAL OF ORTHOPAEDIC RESEARCH,22,2,clinical_medicine,biomechanics_movement_science,high,"orthopaedic research, musculoskeletal biomechanics"
+JOURNAL OF SPORTS SCIENCES,22,0,sport_science,,high,sport science
+ERGONOMICS,20,1,ergonomics_human_factors,,high,ergonomics
+JOURNAL OF ORTHOPAEDIC & SPORTS PHYSICAL THERAPY,20,3,clinical_medicine,,high,sports physical therapy
+JOURNAL OF BIOMECHANICAL ENGINEERING-TRANSACTIONS OF THE ASME,19,0,engineering_sensors,biomechanics_movement_science,high,ASME biomechanical engineering
+MEDICAL & BIOLOGICAL ENGINEERING & COMPUTING,18,5,engineering_sensors,,high,"medical and biological engineering, computing"
+SCIENTIFIC REPORTS,17,1,multidisciplinary,,high,general science
+JOURNAL OF ATHLETIC TRAINING,17,1,clinical_medicine,sport_science,high,"athletic training, sports medicine"
+ORTHOPAEDIC JOURNAL OF SPORTS MEDICINE,16,1,clinical_medicine,sport_science,high,sports medicine
+MANUAL THERAPY,16,1,clinical_medicine,,high,manual physical therapy
+BMC MUSCULOSKELETAL DISORDERS,15,2,clinical_medicine,,high,musculoskeletal disorders
+FRONTIERS IN SPORTS AND ACTIVE LIVING,14,3,sport_science,clinical_medicine,medium,"sport, physical activity, health"
+INTERNATIONAL JOURNAL OF SPORTS MEDICINE,13,2,clinical_medicine,sport_science,high,sports medicine
+FRONTIERS IN BIOENGINEERING AND BIOTECHNOLOGY,13,1,engineering_sensors,biomechanics_movement_science,medium,"bioengineering, biomechanics, biotechnology"
+INTERNATIONAL JOURNAL OF INDUSTRIAL ERGONOMICS,12,0,ergonomics_human_factors,clinical_medicine,high,ergonomics
+MEDICAL ENGINEERING & PHYSICS,12,1,engineering_sensors,biomechanics_movement_science,high,biomedical engineering and physics
+JOURNAL OF NEUROENGINEERING AND REHABILITATION,12,0,engineering_sensors,clinical_medicine,high,"neuroengineering, rehabilitation technology"
+IEEE TRANSACTIONS ON NEURAL SYSTEMS AND REHABILITATION ENGINEERING,12,0,engineering_sensors,clinical_medicine,high,neural and rehabilitation engineering
+ARCHIVES OF PHYSICAL MEDICINE AND REHABILITATION,12,1,clinical_medicine,,high,rehabilitation
+EXPERIMENTAL BRAIN RESEARCH,12,1,other,biomechanics_movement_science,medium,neuroscience; motor control
+JOURNAL OF BODYWORK AND MOVEMENT THERAPIES,11,1,clinical_medicine,,high,manual and movement therapies
+JOURNAL OF SPORT REHABILITATION,11,3,clinical_medicine,sport_science,high,"sport rehabilitation, athletic training"
+APPLIED SCIENCES-BASEL,10,2,multidisciplinary,,high,MDPI multidisciplinary applied sciences
+SCANDINAVIAN JOURNAL OF MEDICINE & SCIENCE IN SPORTS,9,0,sport_science,clinical_medicine,high,sport science and sports medicine
+JOURNAL OF STRENGTH AND CONDITIONING RESEARCH,8,0,sport_science,,high,strength and conditioning
+DISABILITY AND REHABILITATION,8,1,clinical_medicine,,high,rehabilitation
+HUMAN FACTORS,8,1,ergonomics_human_factors,,high,human factors
+INTERNATIONAL BIOMECHANICS,8,2,biomechanics_movement_science,,medium,biomechanics open access journal
+JSES INTERNATIONAL,7,2,clinical_medicine,,high,shoulder and elbow surgery
+JOURNAL OF CLINICAL MEDICINE,7,1,clinical_medicine,,high,clinical
+JOURNAL OF ORTHOPAEDIC SURGERY AND RESEARCH,7,1,clinical_medicine,,high,orthopaedics
+JOURNAL OF MOTOR BEHAVIOR,7,2,biomechanics_movement_science,,high,motor control and learning
+IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING,7,0,engineering_sensors,,high,IEEE engineering
+JOURNAL OF SCIENCE AND MEDICINE IN SPORT,7,1,sport_science,clinical_medicine,high,sport science and medicine
+MEDICINE AND SCIENCE IN SPORTS AND EXERCISE,7,1,sport_science,clinical_medicine,high,"exercise science, sports medicine"
+JOURNAL OF REHABILITATION RESEARCH AND DEVELOPMENT,7,2,clinical_medicine,,high,rehabilitation
+BIOENGINEERING-BASEL,6,0,engineering_sensors,clinical_medicine,high,MDPI bioengineering
+BRAZILIAN JOURNAL OF PHYSICAL THERAPY,6,2,clinical_medicine,,high,physical therapy
+APPLIED BIONICS AND BIOMECHANICS,6,0,engineering_sensors,biomechanics_movement_science,high,"bionics, biomechanics"
+KNEE SURGERY SPORTS TRAUMATOLOGY ARTHROSCOPY,6,0,clinical_medicine,sport_science,high,"knee surgery, sports traumatology"
+PROCEEDINGS OF THE INSTITUTION OF MECHANICAL ENGINEERS PART H-JOURNAL OF ENGINEERING IN MEDICINE,6,0,engineering_sensors,clinical_medicine,high,"engineering in medicine, mechanical engineers"
+JOURNAL OF HAND THERAPY,5,0,clinical_medicine,,high,therapy
+MULTIBODY SYSTEM DYNAMICS,5,1,engineering_sensors,biomechanics_movement_science,high,"multibody dynamics, mechanical engineering"
+ARCHIVES OF ORTHOPAEDIC AND TRAUMA SURGERY,5,0,clinical_medicine,,high,orthopaedics
+JOURNAL OF HAND SURGERY-AMERICAN VOLUME,5,3,clinical_medicine,,high,hand surgery
+JOURNAL OF SPORTS SCIENCE AND MEDICINE,5,0,sport_science,clinical_medicine,high,sport science and sports medicine
+AMERICAN JOURNAL OF PHYSICAL MEDICINE & REHABILITATION,5,0,clinical_medicine,,high,rehabilitation
+JOURNAL OF ORTHOPAEDIC SCIENCE,5,0,clinical_medicine,,high,orthopaedics
+MUSCULOSKELETAL SCIENCE AND PRACTICE,5,0,clinical_medicine,,high,musculoskeletal physiotherapy
+PHYSICAL THERAPY,5,1,clinical_medicine,,high,physical therapy
+J PHYS THER SCI,5,1,clinical_medicine,,high,physical therapy science
+SPORTS ENGINEERING,4,0,engineering_sensors,sport_science,high,sports equipment engineering
+EUROPEAN JOURNAL OF SPORT SCIENCE,4,1,sport_science,,high,sport science
+SPORTS HEALTH-A MULTIDISCIPLINARY APPROACH,4,2,clinical_medicine,sport_science,high,sports medicine
+JOURNAL OF BACK AND MUSCULOSKELETAL REHABILITATION,4,0,clinical_medicine,,high,back and musculoskeletal rehabilitation
+JOURNAL OF EXPERIMENTAL ORTHOPAEDICS,4,0,clinical_medicine,,high,orthopaedics
+IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS,4,0,engineering_sensors,,high,"medical robotics, bionics"
+CLINICAL ORTHOPAEDICS AND RELATED RESEARCH,4,1,clinical_medicine,,high,orthopaedics
+MEDICAL PROBLEMS OF PERFORMING ARTISTS,4,0,clinical_medicine,,high,performing arts medicine
+PM&R,4,1,clinical_medicine,,high,physical medicine and rehabilitation
+ARTHROSCOPY-THE JOURNAL OF ARTHROSCOPIC AND RELATED SURGERY,4,0,clinical_medicine,,high,surgery
+INTERNATIONAL ORTHOPAEDICS,4,0,clinical_medicine,,high,orthopaedics
+INTERNATIONAL JOURNAL OF COMPUTER ASSISTED RADIOLOGY AND SURGERY,4,1,engineering_sensors,clinical_medicine,high,"computer-assisted surgery, medical imaging"
+PHYSICAL THERAPY IN SPORT,4,0,clinical_medicine,sport_science,high,sports physical therapy
+INT J SPORTS PHYS THER,4,0,clinical_medicine,,high,sports physical therapy
+COMPUTER METHODS IN BIOMECHANICS AND BIOMEDICAL ENGINEERING-IMAGING AND VISUALIZATION,3,0,engineering_sensors,biomechanics_movement_science,high,"biomedical imaging, visualization, computational biomechanics"
+SHOULDER & ELBOW,3,0,clinical_medicine,,high,shoulder/elbow clinical
+IISE TRANSACTIONS ON OCCUPATIONAL ERGONOMICS & HUMAN FACTORS,3,1,ergonomics_human_factors,clinical_medicine,high,ergonomics
+CLINICAL REHABILITATION,3,1,clinical_medicine,,high,rehabilitation
+BIOMEDICAL ENGINEERING ONLINE,3,1,engineering_sensors,,high,biomedical engineering
+MEDICINE & SCIENCE IN SPORTS & EXERCISE,3,0,sport_science,clinical_medicine,high,"exercise science, sports medicine"
+ANNALS OF BIOMEDICAL ENGINEERING,3,0,engineering_sensors,biomechanics_movement_science,high,"biomedical engineering, biomechanics"
+PEERJ,3,0,multidisciplinary,,high,general science
+IEEE SENSORS JOURNAL,3,0,engineering_sensors,,high,sensors
+PROSTHETICS AND ORTHOTICS INTERNATIONAL,3,0,clinical_medicine,engineering_sensors,high,"prosthetics, orthotics, rehabilitation"
+REHABILITATION ONCOLOGY,3,0,clinical_medicine,,high,rehabilitation
+SPORTS,3,0,sport_science,,medium,MDPI sports science
+WORK-A JOURNAL OF PREVENTION ASSESSMENT & REHABILITATION,3,0,ergonomics_human_factors,clinical_medicine,medium,"occupational prevention, rehabilitation"
+JOURNAL OF HUMAN KINETICS,3,1,sport_science,biomechanics_movement_science,high,"kinesiology, sport science"
+BMC SPORTS SCIENCE MEDICINE AND REHABILITATION,3,0,sport_science,clinical_medicine,high,"sport science, medicine, rehabilitation"
+INTERNATIONAL JOURNAL OF ENVIRONMENTAL RESEARCH AND PUBLIC HEALTH,3,0,multidisciplinary,,medium,MDPI environmental and public health
+INTERNATIONAL JOURNAL OF OCCUPATIONAL SAFETY AND ERGONOMICS,3,1,ergonomics_human_factors,clinical_medicine,high,ergonomics
+IEEE ACCESS,3,1,engineering_sensors,,high,"general IEEE open access, engineering"
+JOURNAL OF MANIPULATIVE AND PHYSIOLOGICAL THERAPEUTICS,3,1,clinical_medicine,,high,therapy
+ORTHOPAEDICS & TRAUMATOLOGY-SURGERY & RESEARCH,3,0,clinical_medicine,,high,orthopaedics
+JOURNAL OF PEDIATRIC ORTHOPAEDICS,3,1,clinical_medicine,,high,orthopaedics
+PHYSIOTHERAPY THEORY AND PRACTICE,3,0,clinical_medicine,,high,therapy
+BIOMED RESEARCH INTERNATIONAL,3,0,multidisciplinary,clinical_medicine,medium,broad biomedical open access
+JOURNAL OF MECHANICS IN MEDICINE AND BIOLOGY,3,0,engineering_sensors,biomechanics_movement_science,high,mechanics in medicine and biology
+JOURNAL OF PHYSICAL THERAPY SCIENCE,3,0,clinical_medicine,,high,physical therapy
+JOURNAL OF REHABILITATION MEDICINE,3,1,clinical_medicine,,high,rehabilitation
+SPINAL CORD,3,1,clinical_medicine,,high,spinal cord medicine
+"JSES REVIEWS, REPORTS, AND TECHNIQUES",3,1,clinical_medicine,,high,shoulder and elbow surgery
+MUSCULOSKELETAL SURGERY,3,0,clinical_medicine,,high,surgery
+SPORTS TECHNOLOGY,3,0,engineering_sensors,sport_science,medium,sports technology
+INTERNATIONAL JOURNAL OF HUMAN FACTORS MODELLING AND SIMULATION,3,0,ergonomics_human_factors,engineering_sensors,high,"digital human modelling, human factors"
+JOURNAL OF BONE AND JOINT SURGERY-AMERICAN VOLUME,2,0,clinical_medicine,,high,surgery
+IEEE TRANSACTIONS ON HUMAN-MACHINE SYSTEMS,2,0,engineering_sensors,ergonomics_human_factors,high,human-machine systems
+BONE & JOINT RESEARCH,2,0,clinical_medicine,,high,bone and joint
+SCIENTIFIC DATA,2,0,multidisciplinary,,high,"data descriptors, general science"
+JOURNAL OF FUNCTIONAL MORPHOLOGY AND KINESIOLOGY,2,1,sport_science,biomechanics_movement_science,medium,"kinesiology, functional morphology, exercise"
+AUTONOMOUS ROBOTS,2,0,engineering_sensors,computer_science_vision_ai,high,robotics
+IEEE TRANSACTIONS ON AUTOMATION SCIENCE AND ENGINEERING,2,1,engineering_sensors,,high,automation engineering
+JOURNAL OF HUMAN SPORT AND EXERCISE,2,0,sport_science,,medium,sport and exercise science
+JOURNAL OF DIAGNOSTIC MEDICAL SONOGRAPHY,2,0,clinical_medicine,,high,ultrasound sonography
+IEEE JOURNAL OF BIOMEDICAL AND HEALTH INFORMATICS,2,0,engineering_sensors,computer_science_vision_ai,high,biomedical informatics
+FRONTIERS IN NEUROSCIENCE,2,0,other,,high,neuroscience
+SPORT SCIENCES FOR HEALTH,2,0,sport_science,,medium,sport sciences and health
+PROSTHESIS,2,1,clinical_medicine,engineering_sensors,medium,prosthetics and orthotics
+INTERNATIONAL JOURNAL OF GENERAL MEDICINE,2,1,clinical_medicine,,high,general medicine
+JOURNAL OF OCCUPATIONAL HEALTH,2,0,ergonomics_human_factors,clinical_medicine,high,occupational health
+JMIR RESEARCH PROTOCOLS,2,0,clinical_medicine,,high,research protocols digital health
+INTERNATIONAL JOURNAL OF THERAPY AND REHABILITATION,2,0,clinical_medicine,,high,rehabilitation
+MEDICINE,2,0,clinical_medicine,multidisciplinary,high,general medicine journal
+MHEALTH,2,0,engineering_sensors,clinical_medicine,low,mobile health; guessed from name
+ACTA ORTOPEDICA BRASILEIRA,2,0,clinical_medicine,,medium,"orthopaedics, Brazilian"
+JOURNAL OF SPINAL CORD MEDICINE,2,0,clinical_medicine,,high,medicine
+TOPICS IN SPINAL CORD INJURY REHABILITATION,2,1,clinical_medicine,,high,rehabilitation
+JOVE-JOURNAL OF VISUALIZED EXPERIMENTS,2,0,multidisciplinary,,high,video methods across sciences
+JOURNAL OF EXPERIMENTAL BIOLOGY,2,0,other,biomechanics_movement_science,high,comparative and experimental biology
+JOURNAL OF BIONIC ENGINEERING,2,0,engineering_sensors,,high,"bionics, biomimetic engineering"
+ANNALS OF PHYSICAL AND REHABILITATION MEDICINE,2,0,clinical_medicine,,high,rehabilitation
+JOURNAL OF ORTHOPAEDIC SURGERY,2,0,clinical_medicine,,high,orthopaedics
+FRONTIERS IN NEUROROBOTICS,2,0,engineering_sensors,,high,robotics
+MECHANISM AND MACHINE THEORY,2,0,engineering_sensors,,high,mechanism and machine theory
+ASSISTIVE TECHNOLOGY,2,0,clinical_medicine,engineering_sensors,high,"assistive technology, rehabilitation"
+DISABILITY AND REHABILITATION-ASSISTIVE TECHNOLOGY,2,0,clinical_medicine,engineering_sensors,high,"assistive technology, rehabilitation"
+FRONTIERS IN HUMAN NEUROSCIENCE,2,0,other,biomechanics_movement_science,high,human neuroscience
+BIOMEDICAL ENGINEERING-BIOMEDIZINISCHE TECHNIK,2,0,engineering_sensors,,high,biomedical engineering
+PHYSIOLOGICAL MEASUREMENT,2,0,engineering_sensors,clinical_medicine,high,physiological measurement instrumentation
+INTERNATIONAL JOURNAL OF PRECISION ENGINEERING AND MANUFACTURING,2,0,engineering_sensors,,high,precision engineering
+IEEE TRANSACTIONS ON ROBOTICS,2,0,engineering_sensors,,high,robotics
+NEUROSCIENCE,2,0,other,,high,neuroscience
+PHYSIOTHERAPY,2,0,clinical_medicine,,high,physiotherapy
+JOURNAL OF MEDICAL AND BIOLOGICAL ENGINEERING,2,1,engineering_sensors,,high,medical and biological engineering
+RESEARCH IN DEVELOPMENTAL DISABILITIES,2,1,clinical_medicine,,high,developmental disabilities
+INTERNATIONAL JOURNAL OF SHOULDER SURGERY,2,0,clinical_medicine,,high,surgery
+MOTOR CONTROL,2,0,biomechanics_movement_science,,high,motor control
+SURGICAL AND RADIOLOGIC ANATOMY,2,0,clinical_medicine,,high,"clinical anatomy, surgery"
+BRITISH JOURNAL OF SPORTS MEDICINE,2,1,clinical_medicine,sport_science,high,sports medicine
+MCB MOLECULAR AND CELLULAR BIOMECHANICS,2,0,engineering_sensors,biomechanics_movement_science,medium,cellular biomechanics
+IEEE INTERNATIONAL CONFERENCE ON REHABILITATION ROBOTICS,2,0,engineering_sensors,clinical_medicine,high,rehabilitation robotics conference
+SEMINARS IN ARTHROPLASTY JSES,2,0,clinical_medicine,,high,arthroscopy
+"ARTHROSCOPY, SPORTS MEDICINE, AND REHABILITATION",2,0,clinical_medicine,sport_science,high,sports medicine
+ADVANCES IN INTELLIGENT SYSTEMS AND COMPUTING,2,0,computer_science_vision_ai,,medium,"book series, intelligent systems"
+IISE TRANSACTIONS ON OCCUPATIONAL ERGONOMICS AND HUMAN FACTORS,2,0,ergonomics_human_factors,clinical_medicine,high,ergonomics
+JOURNAL OF BONE AND JOINT SURGERY,2,0,clinical_medicine,,high,surgery
+PHYSICAL AND OCCUPATIONAL THERAPY IN GERIATRICS,2,0,clinical_medicine,,high,occupational therapy
+JOURNAL OF MUSCULOSKELETAL RESEARCH,2,1,clinical_medicine,biomechanics_movement_science,medium,musculoskeletal research
+PROG REHABIL MED,2,0,clinical_medicine,,medium,rehabilitation medicine
+INTERNATIONAL JOURNAL OF EXPERIMENTAL AND COMPUTATIONAL BIOMECHANICS,2,0,biomechanics_movement_science,engineering_sensors,medium,experimental and computational biomechanics
+APPLIED MECHANICS AND MATERIALS,2,0,engineering_sensors,,medium,mechanical engineering proceedings
+ATHLETIC TRAINING & SPORTS HEALTH CARE,2,0,clinical_medicine,sport_science,high,"athletic training, sports health care"
+IIE TRANSACTIONS ON OCCUPATIONAL ERGONOMICS AND HUMAN FACTORS,2,0,ergonomics_human_factors,clinical_medicine,high,ergonomics
+RESULTS IN ENGINEERING,1,0,engineering_sensors,,high,engineering
+ENGINEERING RESEARCH EXPRESS,1,0,engineering_sensors,,high,engineering
+ROBOTICS AND AUTONOMOUS SYSTEMS,1,0,engineering_sensors,,high,robotics
+THERAPEUTICS AND CLINICAL RISK MANAGEMENT,1,0,clinical_medicine,,high,clinical therapeutics
+JOURNAL OF ANATOMY,1,0,other,clinical_medicine,high,anatomy
+JOURNAL OF CHIROPRACTIC MEDICINE,1,0,clinical_medicine,,high,chiropractic
+BIOMECHANICS,1,0,biomechanics_movement_science,,high,biomechanics
+EUROPEAN JOURNAL OF NEUROSCIENCE,1,0,other,,high,neuroscience
+ENGINEERING REPORTS,1,0,engineering_sensors,,high,engineering
+JOURNAL OF APPLIED AND COMPUTATIONAL MECHANICS,1,0,engineering_sensors,,medium,mechanics engineering
+PROCEEDINGS OF THE ACM ON INTERACTIVE MOBILE WEARABLE AND UBIQUITOUS TECHNOLOGIES-IMWUT,1,0,computer_science_vision_ai,engineering_sensors,high,"ubiquitous computing, wearables"
+TURKISH JOURNAL OF MEDICAL SCIENCES,1,0,clinical_medicine,multidisciplinary,high,general medical sciences
+DIGITAL HEALTH,1,0,clinical_medicine,computer_science_vision_ai,high,digital health
+BIOMEDICAL HUMAN KINETICS,1,0,biomechanics_movement_science,sport_science,high,"human kinetics, biomedical"
+IEEE OPEN JOURNAL OF THE COMPUTER SOCIETY,1,0,computer_science_vision_ai,,high,computing
+INTERNATIONAL JOURNAL OF ADVANCED ROBOTIC SYSTEMS,1,0,engineering_sensors,,high,robotics
+JOURNAL OF NEUROPHYSIOLOGY,1,0,other,biomechanics_movement_science,high,"neurophysiology, motor control"
+JOURNAL OF MENS HEALTH,1,0,clinical_medicine,,high,mens health
+SAFETY,1,0,ergonomics_human_factors,,medium,safety MDPI
+MILITARY MEDICINE,1,0,clinical_medicine,,high,military medicine
+JOURNAL OF SAFETY RESEARCH,1,0,ergonomics_human_factors,,high,safety research
+HELIYON,1,0,multidisciplinary,,high,multidisciplinary
+JOURNAL OF THE BRAZILIAN SOCIETY OF MECHANICAL SCIENCES AND ENGINEERING,1,0,engineering_sensors,,high,mechanical engineering
+SAFETY SCIENCE,1,1,ergonomics_human_factors,,high,safety science
+HEALTHCARE,1,0,clinical_medicine,multidisciplinary,medium,MDPI healthcare
+ISCIENCE,1,0,multidisciplinary,,high,multidisciplinary
+JOURNAL OF ULTRASOUND IN MEDICINE,1,0,clinical_medicine,,high,ultrasound medicine
+DATA IN BRIEF,1,1,multidisciplinary,,high,data articles
+SYMMETRY-BASEL,1,0,multidisciplinary,,high,"MDPI symmetry, multidisciplinary"
+FRONTIERS IN NEUROLOGY,1,0,clinical_medicine,,high,clinical neurology
+COMPUTERS IN BIOLOGY AND MEDICINE,1,0,computer_science_vision_ai,clinical_medicine,high,computational methods in medicine
+FRONTIERS IN PHYSIOLOGY,1,0,other,clinical_medicine,high,physiology
+CLINICS IN SHOULDER AND ELBOW,1,0,clinical_medicine,,high,shoulder and elbow
+COMPUTERS IN HUMAN BEHAVIOR,1,0,computer_science_vision_ai,other,high,"human-computer behavior, psychology"
+COMPUTER VISION AND IMAGE UNDERSTANDING,1,0,computer_science_vision_ai,,high,computer vision
+ANNALS OF MEDICINE,1,0,clinical_medicine,,high,general medicine
+ADVANCED ROBOTICS,1,0,engineering_sensors,,high,robotics
+DIAGNOSTICS,1,0,clinical_medicine,multidisciplinary,medium,MDPI diagnostics
+ARCHIVES OF REHABILITATION RESEARCH AND CLINICAL TRANSLATION,1,0,clinical_medicine,,high,rehabilitation
+EUROPEAN PHYSICAL JOURNAL-SPECIAL TOPICS,1,0,multidisciplinary,,medium,physics special topics
+PLASTIC AND RECONSTRUCTIVE SURGERY,1,0,clinical_medicine,,high,plastic surgery
+TRIALS,1,0,clinical_medicine,,high,clinical trials
+ARCHIVES OF PHYSIOTHERAPY,1,0,clinical_medicine,,high,therapy
+BIOMECHANICS AND MODELING IN MECHANOBIOLOGY,1,0,biomechanics_movement_science,engineering_sensors,high,"biomechanics, mechanobiology modeling"
+JOURNAL OF SENSORS,1,1,engineering_sensors,,high,sensors
+INTERNATIONAL JOURNAL OF PATTERN RECOGNITION AND ARTIFICIAL INTELLIGENCE,1,0,computer_science_vision_ai,,high,"pattern recognition, AI"
+YONSEI MEDICAL JOURNAL,1,0,clinical_medicine,,high,general medicine
+FRONTIERS IN REHABILITATION SCIENCES,1,1,clinical_medicine,,high,rehabilitation
+LIFE-BASEL,1,0,multidisciplinary,,high,MDPI life sciences
+ADVANCES IN ORTHOPEDICS,1,0,clinical_medicine,,high,orthopaedics
+EXPERT SYSTEMS WITH APPLICATIONS,1,0,computer_science_vision_ai,,high,AI applications
+ADVANCED ENGINEERING INFORMATICS,1,0,computer_science_vision_ai,engineering_sensors,high,engineering informatics
+ARTHRITIS CARE & RESEARCH,1,0,clinical_medicine,,high,"rheumatology, arthritis care"
+JOURNAL OF THE ROYAL SOCIETY INTERFACE,1,1,multidisciplinary,biomechanics_movement_science,high,interdisciplinary physical-life sciences
+HUMAN FACTORS AND ERGONOMICS IN MANUFACTURING & SERVICE INDUSTRIES,1,0,ergonomics_human_factors,,high,human factors manufacturing
+MEDICINA-LITHUANIA,1,0,clinical_medicine,multidisciplinary,medium,MDPI medicine
+JOURNAL OF HEALTHCARE ENGINEERING,1,0,engineering_sensors,clinical_medicine,high,healthcare engineering
+INDUSTRIAL HEALTH,1,0,ergonomics_human_factors,clinical_medicine,high,occupational health
+PROCEEDINGS OF THE NATIONAL ACADEMY OF SCIENCES OF THE UNITED STATES OF AMERICA,1,1,multidisciplinary,,high,general science
+JOURNAL OF OCCUPATIONAL REHABILITATION,1,0,ergonomics_human_factors,clinical_medicine,high,occupational health
+MM SCIENCE JOURNAL,1,0,engineering_sensors,,medium,"manufacturing, mechanical"
+IEEE ROBOTICS AND AUTOMATION LETTERS,1,0,engineering_sensors,,high,robotics
+ORTHOPAEDIC SURGERY,1,0,clinical_medicine,,high,orthopaedics
+JOURNAL OF CONSTRUCTION ENGINEERING AND MANAGEMENT,1,0,ergonomics_human_factors,other,medium,construction engineering; occupational
+TECHNOLOGY AND HEALTH CARE,1,1,engineering_sensors,clinical_medicine,high,health technology
+BMJ OPEN SPORT & EXERCISE MEDICINE,1,0,clinical_medicine,sport_science,high,sport and exercise medicine
+CLINICAL NEUROPHYSIOLOGY,1,0,clinical_medicine,,high,clinical neurophysiology
+ACTA ORTHOPAEDICA ET TRAUMATOLOGICA TURCICA,1,0,clinical_medicine,,high,orthopaedics
+IEEE TRANSACTIONS ON INSTRUMENTATION AND MEASUREMENT,1,0,engineering_sensors,,high,"instrumentation, measurement"
+EUROPEAN JOURNAL OF APPLIED PHYSIOLOGY,1,1,sport_science,other,high,exercise physiology
+BMC NEUROLOGY,1,0,clinical_medicine,,high,neurology
+NEUROLOGICAL SCIENCES,1,1,clinical_medicine,,high,neurology
+ACTA OF BIOENGINEERING AND BIOMECHANICS,1,1,biomechanics_movement_science,engineering_sensors,high,"bioengineering, biomechanics"
+BONE & JOINT JOURNAL,1,1,clinical_medicine,,high,bone and joint
+INTERNATIONAL JOURNAL OF SPORTS SCIENCE & COACHING,1,0,sport_science,,high,"sport science, coaching"
+HAND CLINICS,1,0,clinical_medicine,,medium,hand clinical
+JOURNAL OF SPORTS MEDICINE AND PHYSICAL FITNESS,1,0,clinical_medicine,sport_science,high,"sports medicine, fitness"
+ENTERTAINMENT COMPUTING,1,0,computer_science_vision_ai,,high,"entertainment computing, games"
+DEVELOPMENTAL MEDICINE AND CHILD NEUROLOGY,1,0,clinical_medicine,,high,child neurology
+BMC PEDIATRICS,1,0,clinical_medicine,,high,pediatrics
+DEVELOPMENTAL PSYCHOBIOLOGY,1,1,other,,high,developmental psychobiology
+BIOLOGY OF SEX DIFFERENCES,1,0,other,,high,sex differences biology
+CHILDS NERVOUS SYSTEM,1,0,clinical_medicine,,high,pediatric neurosurgery
+BIOMEDICAL SIGNAL PROCESSING AND CONTROL,1,0,engineering_sensors,computer_science_vision_ai,high,biomedical signal processing
+DRUG AND ALCOHOL DEPENDENCE,1,0,other,,high,addiction; off-topic
+ANNALS OF WORK EXPOSURES AND HEALTH,1,0,ergonomics_human_factors,,high,occupational exposure
+ACTA MEDICA OKAYAMA,1,0,clinical_medicine,,medium,general medicine
+NEUROREHABILITATION,1,0,clinical_medicine,,high,rehabilitation
+INTERNATIONAL JOURNAL OF HUMANOID ROBOTICS,1,0,engineering_sensors,,high,humanoid robotics
+COMPUTER METHODS AND PROGRAMS IN BIOMEDICINE,1,0,computer_science_vision_ai,clinical_medicine,high,computing in biomedicine
+FRONTIERS IN PSYCHOLOGY,1,0,other,,high,psychology
+SPRINGERPLUS,1,0,multidisciplinary,,high,multidisciplinary
+CLINICAL PHYSIOLOGY AND FUNCTIONAL IMAGING,1,0,clinical_medicine,,high,clinical physiology
+AMERICAN JOURNAL OF OCCUPATIONAL THERAPY,1,0,clinical_medicine,,high,occupational therapy
+JOURNAL OF SPORT AND HEALTH SCIENCE,1,0,sport_science,clinical_medicine,high,sport and health science
+JOURNAL OF OCCUPATIONAL MEDICINE AND TOXICOLOGY,1,0,ergonomics_human_factors,clinical_medicine,high,occupational medicine
+ACTA ORTHOPAEDICA,1,0,clinical_medicine,,high,orthopaedics
+INTERNATIONAL JOURNAL OF SOCIAL ROBOTICS,1,1,engineering_sensors,computer_science_vision_ai,high,social robotics
+JOURNAL OF MECHANICAL DESIGN,1,0,engineering_sensors,,high,mechanical design
+JOURNAL OF CHILD NEUROLOGY,1,0,clinical_medicine,,high,child neurology
+IEEE TRANSACTIONS ON VISUALIZATION AND COMPUTER GRAPHICS,1,0,computer_science_vision_ai,,high,"visualization, graphics"
+CLINICAL ANATOMY,1,0,clinical_medicine,,high,clinical anatomy
+JOURNAL OF MEDICAL IMAGING AND HEALTH INFORMATICS,1,0,engineering_sensors,clinical_medicine,medium,medical imaging informatics
+NEUROREHABILITATION AND NEURAL REPAIR,1,0,clinical_medicine,,high,rehabilitation
+JOURNAL OF HUMAN EVOLUTION,1,1,other,biomechanics_movement_science,high,human evolution
+JOURNAL OF ORTHOPAEDIC TRAUMA,1,0,clinical_medicine,,high,orthopaedics
+INDIAN JOURNAL OF ORTHOPAEDICS,1,0,clinical_medicine,,high,orthopaedics
+IRBM,1,0,engineering_sensors,clinical_medicine,high,biomedical engineering
+ACTA ONCOLOGICA,1,0,clinical_medicine,,high,oncology
+INTERNATIONAL JOURNAL OF REHABILITATION RESEARCH,1,0,clinical_medicine,,high,rehabilitation
+BRAZILIAN JOURNAL OF MEDICAL AND BIOLOGICAL RESEARCH,1,0,multidisciplinary,clinical_medicine,medium,biomedical general
+ZEITSCHRIFT FUR PSYCHOLOGIE-JOURNAL OF PSYCHOLOGY,1,0,other,,high,psychology
+MUSCLE & NERVE,1,0,clinical_medicine,,high,neuromuscular medicine
+BMC PUBLIC HEALTH,1,1,clinical_medicine,multidisciplinary,high,public health
+IEEE TRANSACTIONS ON INFORMATION TECHNOLOGY IN BIOMEDICINE,1,0,engineering_sensors,computer_science_vision_ai,high,biomedical information technology
+ADAPTED PHYSICAL ACTIVITY QUARTERLY,1,0,sport_science,clinical_medicine,high,adapted physical activity
+JOURNAL OF NEUROLOGIC PHYSICAL THERAPY,1,0,clinical_medicine,,high,physical therapy
+CHINESE JOURNAL OF PHYSIOLOGY,1,0,other,,high,physiology
+SPINE,1,0,clinical_medicine,,medium,spine
+BREAST CANCER RESEARCH AND TREATMENT,1,0,clinical_medicine,,high,oncology; off-topic
+IET SCIENCE MEASUREMENT & TECHNOLOGY,1,0,engineering_sensors,,high,measurement technology
+JOURNAL OF BONE AND JOINT SURGERY-BRITISH VOLUME,1,0,clinical_medicine,,high,surgery
+BRAIN RESEARCH,1,1,other,,high,neuroscience
+JOURNAL OF PERSONALIZED MEDICINE,1,0,clinical_medicine,,high,personalized medicine
+JOURNAL OF BIOMECHANICAL ENGINEERING,1,0,engineering_sensors,biomechanics_movement_science,high,ASME biomechanical engineering
+"KNEE SURGERY, SPORTS TRAUMATOLOGY, ARTHROSCOPY",1,0,clinical_medicine,sport_science,high,"knee surgery, sports traumatology"
+BONE AND JOINT JOURNAL,1,0,clinical_medicine,,high,bone and joint
+JOURNAL OF PHYSICAL EDUCATION AND SPORT,1,0,sport_science,,medium,"physical education, sport"
+"2024 IEEE INTERNATIONAL WORKSHOP ON METROLOGY FOR INDUSTRY 4.0 AND IOT, METROIND4.0 AND IOT 2024 - PROCEEDINGS",1,0,engineering_sensors,,high,"metrology, IoT conference"
+GAIT AND POSTURE,1,0,biomechanics_movement_science,,high,gait and posture
+SENSORS (SWITZERLAND),1,0,engineering_sensors,,high,"sensors, MDPI"
+COMPUTATIONAL METHODS IN APPLIED SCIENCES,1,0,engineering_sensors,computer_science_vision_ai,medium,"book series, computational methods"
+ICSPORTS 2019 - PROCEEDINGS OF THE 7TH INTERNATIONAL CONFERENCE ON SPORT SCIENCES RESEARCH AND TECHNOLOGY SUPPORT,1,0,sport_science,engineering_sensors,high,sport science and technology conference
+ACTA BIOMEDICA,1,1,clinical_medicine,,medium,general biomedicine
+TRANSLATIONAL SPORTS MEDICINE,1,0,clinical_medicine,sport_science,high,sports medicine
+JOURNAL OF MOTOR LEARNING AND DEVELOPMENT,1,0,biomechanics_movement_science,,high,motor learning and development
+JOURNAL OF ORTHOPAEDICS,1,0,clinical_medicine,,high,orthopaedics
+CLINICAL MEDICINE INSIGHTS: ARTHRITIS AND MUSCULOSKELETAL DISORDERS,1,0,clinical_medicine,,high,clinical
+COMPUTATIONAL BIOMECHANICS FOR MEDICINE: FROM ALGORITHMS TO MODELS AND APPLICATIONS,1,1,engineering_sensors,biomechanics_movement_science,medium,"book, computational biomechanics"
+INTERNATIONAL JOURNAL OF PROGNOSTICS AND HEALTH MANAGEMENT,1,0,engineering_sensors,,high,prognostics engineering
+CIOS CLINICS IN ORTHOPEDIC SURGERY,1,0,clinical_medicine,,high,orthopaedics
+IEEE INTERNATIONAL CONFERENCE ON INTELLIGENT ROBOTS AND SYSTEMS,1,0,engineering_sensors,computer_science_vision_ai,high,robotics conference
+SICOT-J,1,0,clinical_medicine,,medium,orthopaedics and traumatology
+MOVEMENT AND SPORTS SCIENCES - SCIENCE ET MOTRICITE,1,0,sport_science,biomechanics_movement_science,medium,movement and sport sciences
+IRANIAN REHABILITATION JOURNAL,1,0,clinical_medicine,,high,rehabilitation
+JOURNAL OF BONE AND JOINT SURGERY - AMERICAN VOLUME,1,0,clinical_medicine,,high,surgery
+REVISTA BRASILEIRA DE CINEANTROPOMETRIA E DESEMPENHO HUMANO,1,0,sport_science,biomechanics_movement_science,medium,"kinanthropometry, human performance"
+JOURNAL OF OCCUPATIONAL AND ENVIRONMENTAL HYGIENE,1,1,ergonomics_human_factors,,high,occupational hygiene
+"SISY 2013 - IEEE 11TH INTERNATIONAL SYMPOSIUM ON INTELLIGENT SYSTEMS AND INFORMATICS, PROCEEDINGS",1,0,computer_science_vision_ai,engineering_sensors,high,intelligent systems informatics conference
+JOURNAL OF MECHANISMS AND ROBOTICS,1,0,engineering_sensors,,high,mechanisms and robotics
+LECTURE NOTES IN COMPUTER SCIENCE (INCLUDING SUBSERIES LECTURE NOTES IN ARTIFICIAL INTELLIGENCE AND LECTURE NOTES IN BIOINFORMATICS),1,0,computer_science_vision_ai,,high,computer science proceedings series
+SHOULDER AND ELBOW,1,0,clinical_medicine,,high,shoulder/elbow clinical
+LECTURE NOTES IN COMPUTATIONAL VISION AND BIOMECHANICS,1,0,computer_science_vision_ai,biomechanics_movement_science,high,computational vision and biomechanics series
+HAND,1,0,clinical_medicine,,medium,hand clinical
+REVISTA BRASILEIRA DE ENGENHARIA BIOMÉDICA,1,0,engineering_sensors,,high,biomedical engineering
+DISABILITY AND REHABILITATION: ASSISTIVE TECHNOLOGY,1,0,clinical_medicine,engineering_sensors,high,"assistive technology, rehabilitation"
+ASSISTIVE TECHNOLOGY RESEARCH SERIES,1,0,clinical_medicine,engineering_sensors,medium,assistive technology book series
+JOURNAL OF EXPERIMENTAL AND CLINICAL MEDICINE,1,0,clinical_medicine,,medium,clinical medicine
+JOURNAL OF CHILDREN'S ORTHOPAEDICS,1,0,clinical_medicine,,high,orthopaedics
+PROCEDIA IUTAM,1,0,engineering_sensors,,medium,theoretical applied mechanics proceedings
+"SPORTS MEDICINE, ARTHROSCOPY, REHABILITATION, THERAPY AND TECHNOLOGY",1,0,clinical_medicine,sport_science,high,"sports medicine, arthroscopy"
+JOURNAL OF MEDICAL AND DENTAL SCIENCES,1,0,clinical_medicine,,medium,medical and dental
+INT J ENVIRON RES PUBLIC HEALTH,1,0,multidisciplinary,,medium,MDPI environmental and public health
+IOWA ORTHOP J,1,0,clinical_medicine,,high,orthopaedics
+J BIOMECH,1,0,biomechanics_movement_science,,high,biomechanics
+INT J ORTHOP,1,0,clinical_medicine,,high,orthopaedics
+J CLIN MED,1,0,clinical_medicine,,high,clinical medicine
+J REHABIL ASSIST TECHNOL ENG,1,0,engineering_sensors,clinical_medicine,high,rehabilitation and assistive technology engineering
+J ADV BIOTECHNOL BIOENG,1,0,engineering_sensors,,low,biotechnology bioengineering; name only
+J EXP ORTHOP,1,0,clinical_medicine,,high,orthopaedics
+SPORTS MED ARTHROSC REHABIL THER TECHNOL,1,0,clinical_medicine,sport_science,high,"sports medicine, arthroscopy"
+BIOMEDICAL ENGINEERING ADVANCES,1,0,engineering_sensors,,high,biomedical engineering
+IEEE/ASME TRANSACTIONS ON MECHATRONICS,1,0,engineering_sensors,,high,IEEE engineering
+ACTA ASTRONAUTICA,1,1,other,engineering_sensors,high,astronautics; space
+RETOS,1,0,sport_science,,medium,Spanish sport and physical education
+JOURNAL OF INTELLIGENT MEDICINE,1,0,computer_science_vision_ai,clinical_medicine,low,AI in medicine; name only
+JOSPT OPEN,1,1,clinical_medicine,,high,orthopaedic and sports physical therapy
+SAF MANAG HUMAN FACTORS,1,0,ergonomics_human_factors,,medium,"safety management, human factors"
+OSTEOLOGY,1,0,clinical_medicine,,medium,bone disease
+SER BIOMECH,1,0,biomechanics_movement_science,,low,biomechanics series; name only
+EURASIP JOURNAL ON ADVANCES IN SIGNAL PROCESSING,1,0,engineering_sensors,computer_science_vision_ai,high,signal processing
+INTERNATIONAL JOURNAL OF BIOMECHATRONICS AND BIOMEDICAL ROBOTICS,1,0,engineering_sensors,,high,"biomechatronics, robotics"
+INTERNATIONAL JOURNAL OF SPORT AND HEALTH SCIENCE,1,0,sport_science,,low,sport and health science; name only
+INTERNATIONAL JOURNAL OF COMPUTER SCIENCE IN SPORT,1,0,computer_science_vision_ai,sport_science,high,computer science in sport
+INTERNATIONAL JOURNAL OF SPORTS SCIENCE AND ENGINEERING,1,0,sport_science,engineering_sensors,medium,sports science and engineering
+NEW TRENDS IN MECHANISM AND MACHINE SCIENCE: FROM FUNDAMENTALS TO INDUSTRIAL APPLICATIONS,1,0,engineering_sensors,,high,mechanism and machine science
+IEEE TRANSACTIONS ON EVOLUTIONARY COMPUTATION,1,0,computer_science_vision_ai,,high,evolutionary computation
+INTERNATIONAL JOURNAL OF ADAPTIVE CONTROL AND SIGNAL PROCESSING,1,1,engineering_sensors,,high,"control, signal processing"
+INT J SPORTS EXERC MED,1,0,sport_science,clinical_medicine,medium,sports and exercise medicine
+J. BIOMED. ENG. INFORM,1,0,engineering_sensors,computer_science_vision_ai,low,biomedical engineering informatics; name only
+EAI ENDORSED TRANSACTIONS ON CREATIVE TECHNOLOGIES,1,0,computer_science_vision_ai,,low,creative technologies; name only
+REVISTA BRASILEIRA DE EDUCAÇÃO FÍSICA E ESPORTE,1,0,sport_science,,medium,physical education and sport
+THE AMERICAN JOURNAL OF OCCUPATIONAL THERAPY,1,0,clinical_medicine,,high,occupational therapy
+JSM ANATOMY AND PHYSIOLOGY,1,0,other,clinical_medicine,medium,anatomy and physiology
+J COMPUT ENG INF TECHNOL 5: 3. DOI: HTTP://DX. DOI. ORG/10.4172/2324,1,0,computer_science_vision_ai,engineering_sensors,low,garbled citation; computer engineering IT
+KOREAN JOURNAL OF APPLIED BIOMECHANICS,1,1,biomechanics_movement_science,,high,applied biomechanics
+GLOB ENVIRON HEALTH SAF,1,0,ergonomics_human_factors,,low,environmental health and safety; name only
+THE BONE & JOINT JOURNAL,1,1,clinical_medicine,,high,bone and joint
+THE JOURNAL OF PHYSICAL FITNESS AND SPORTS MEDICINE,1,0,clinical_medicine,sport_science,high,sports medicine
+EUROPEAN JOURNAL OF EXERCISE AND SPORTS SCIENCE,1,0,sport_science,,low,exercise and sport science; name only
+JOURNAL OF CLINICAL DIAGNOSIS AND TREAMENT,1,0,clinical_medicine,,low,clinical diagnosis; name only
+PHYSICAL THERAPY KOREA,1,0,clinical_medicine,,high,physical therapy
+JUNTENDO MEDICAL JOURNAL,1,0,clinical_medicine,,medium,general medicine
+"MANUAL THERAPY, POSTUROLOGY & REHABILITATION JOURNAL",1,0,clinical_medicine,,medium,"manual therapy, posturology"
+REVISTA BRASILEIRA DE CIÊNCIA E MOVIMENTO,1,0,sport_science,biomechanics_movement_science,medium,"movement science, physical education"
+INTERNATIONAL JOURNAL OF ATHLETIC THERAPY AND TRAINING,1,0,clinical_medicine,,high,therapy
+WORLD J SURG SURGICAL RES. 2022; 5,1,0,clinical_medicine,,low,surgery; garbled citation
+INTERNATIONAL JOURNAL OF RACKET SPORTS SCIENCE,1,0,sport_science,,medium,racket sports science
+IEEE TRANSACTIONS ON MEDICAL IMAGING,1,0,engineering_sensors,computer_science_vision_ai,high,medical imaging
+SURGICOLL,1,0,clinical_medicine,,low,surgery; name only

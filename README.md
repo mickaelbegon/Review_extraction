@@ -143,6 +143,13 @@ review-validation match --pdf-dir "<dossier des PDF inclus>"
 /extract-articles pdf_validation outputs_validation
 ```
 
+   ou, sans occuper une conversation, en lot depuis un terminal (Claude Code sans interface, abonnement, 3 en
+   parallele, outils limites a Read/Write et aux commandes `agent_io`; journaux dans `outputs_validation/logs/`):
+
+```bash
+bash scripts/run_validation_batch.sh pdf_validation outputs_validation 3
+```
+
 3. Exporter le classeur de l'IA:
 
 ```bash

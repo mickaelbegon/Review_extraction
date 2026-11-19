@@ -143,6 +143,13 @@ review-validation match --pdf-dir "<folder of included PDFs>"
 /extract-articles pdf_validation outputs_validation
 ```
 
+   or, without tying up a conversation, as a batch from a terminal (headless Claude Code, subscription, 3 in
+   parallel, tools limited to Read/Write and the `agent_io` commands; logs in `outputs_validation/logs/`):
+
+```bash
+bash scripts/run_validation_batch.sh pdf_validation outputs_validation 3
+```
+
 3. Export the AI workbook:
 
 ```bash
