@@ -59,7 +59,7 @@ Segment coordinate systems (thorax, clavicle, scapula, humerus): evaluate orient
 - humerus_axes_construction_isb_option (isb_option_1 / isb_option_2 / other) reproduces the form's live condition as it is: complete it only when ISB was not followed but an alternative was described for the humerus axes construction (humerus_axes_construction = isb_not_followed_alternative_described); otherwise not_applicable. Do not add another completion rule.
 
 Joint coordinate systems and motions
-- <joint>_reported = no when neither rotations nor translations are reported for that relation; then its rotations and translations are not_assessed and its details not_applicable.
+- <joint>_reported is yes or no: no when neither rotations nor translations are reported for that relation (then its rotations and translations are not_assessed and its details not_applicable); yes as soon as one of them is analysed, even if its method is not described.
 - Rotations: interpret sequence labels together with the segment axes orientation. A sequence with different axis letters may be the same decomposition if axes were relabelled consistently: judge equivalence after accounting for axis directions, signs and rotation order. Code segment axes orientation and rotation computation separately.
 - Translations: check both the tracked point and the reference axes (e.g. glenohumeral: point GH and the scapular axes). A proximal frame alone is insufficient when the tracked point or the frame definition is unclear.
 - Optional rotation/translation details are filled ONLY for a directly described departure (main item = 2 or 5); otherwise not_applicable. Rotations: other_euler_sequence (e.g. X-Z-Y for glenohumeral), helical_angle (finite helical axis and angle), other. Translations: distal_coordinate_system (e.g. humeral axes for glenohumeral motion), joint_coordinate_system, other (explain the tracked point and frame in rationale_short).
@@ -196,7 +196,7 @@ def build_extraction_items() -> list[ExtractionItem]:
                     id=f"{joint_id}_reported",
                     theme=f"joint.{joint_id}",
                     question=f"Are joint kinematics reported for {label}?",
-                    allowed_answers=["yes", "no", "unclear"],
+                    allowed_answers=["yes", "no"],
                     guidance="No if neither rotations nor translations are reported for this relation (then rotations/translations = not_assessed, details = not_applicable).",
                 ),
                 ExtractionItem(
