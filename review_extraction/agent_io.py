@@ -21,7 +21,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .export import write_csv_summary, write_xlsx_summary
-from .form_schema import EXTRACTION_ITEMS, extraction_form_prompt
+from .form_schema import EXTRACTION_ITEMS, consistency_errors, extraction_form_prompt
 from .models import ArticleResult, Evidence, ExtractedAnswer, FinalAnswer, StudyMetadataField
 from .pdf_ingest import extract_pdf_text
 from .reconcile import REVIEW_THRESHOLD
@@ -116,6 +116,8 @@ def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | 
             errors.append(f"{answer.item_id}: not allowed {bad}; allowed: {sorted(allowed[answer.item_id])}")
     meta_ids = {m.field_id for m in metadata}
     errors += [f"Missing metadata field: {item.id}" for item in STUDY_METADATA_ITEMS if item.id not in meta_ids]
+    if not errors:
+        errors += consistency_errors({a.item_id: a.answer for a in answers})
     if errors:
         return None, errors
 

@@ -20,7 +20,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .form_schema import EXTRACTION_ITEMS
+from .form_schema import CODING_RULES, EXTRACTION_ITEMS
 from .variables import build_variables, load_results
 
 SUBSETS = ("development", "tuning", "test")
@@ -183,6 +183,13 @@ def write_template(path: Path, article_ids: list[str], labels: dict[str, str] | 
         )
     for cell in codebook[1]:
         cell.font = Font(bold=True)
+    rules = workbook.create_sheet("Coding rules", 0)
+    rules.column_dimensions["A"].width = 160
+    for line in CODING_RULES.splitlines():
+        rules.append([line])
+    rules["A1"].font = Font(bold=True)
+    workbook.move_sheet("Extraction", offset=-workbook.index(workbook["Extraction"]))
+    workbook.active = 0
     workbook.save(path)
 
 

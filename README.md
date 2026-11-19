@@ -91,28 +91,30 @@ Le pipeline Python complet (avec screening, validateur et escalade) peut aussi u
 ## Decisions a prendre et actions a faire
 
 ### Decisions prises (regles de codage)
-Reponses de Florent et document "ISB data extraction examples for reviewers", integres dans `CODING_RULES` (`review_extraction/form_schema.py`), affiche a l'extracteur avant la grille:
+Guide "ISB shoulder kinematics - Data extraction guide" (consignes de reference), document "ISB data extraction examples for reviewers" et reponses de Florent, integres dans `CODING_RULES` (`review_extraction/form_schema.py`), affiche a l'extracteur avant la grille:
 1. **Declaration ISB globale sans methode**: "ISB recommendations explicitly stated, but no method described" (`isb_explicit_no_method`). Un enonce general ("ISB recommendations were followed") compte comme declaration explicite pour tous les items de segments et d'articulations, a coder item par item sans inferer les details manquants.
 2. **`<segment>_used`**: `yes` des qu'un systeme d'axes est construit pour le segment, pas avant (un capteur seul sur le sternum, sans axes, donne `no`).
 3. **`number_shoulders`**: nombre d'epaules reellement mesurees (1 par participant si un seul cote); `NR` seulement si indeterminable.
 4. **Rotation alternative (NSAR) / comparaison de methodes**: si ISB fait partie des methodes testees, coder ISB (les donnees peuvent etre exprimees selon l'ISB).
 5. **Nouvelle option `i_dont_know`** (items de segments et d'articulations): contradiction non resolue (ex. texte contre figure), jamais pour une simple absence de description; `not_assessed` quand rotations ou translations ne sont pas analysees. Les categories des items a choix multiples peuvent se chevaucher.
+6. **Guide d'extraction**: categories avec leur libelle exact (1-8, plus `not_assessed` pour les articulations); une erreur typographique evidente n'est pas un ecart; une modification intentionnelle est un ecart (categorie 2); les details optionnels ne sont remplis que si une alternative ou un ecart est directement decrit (categorie 2 ou 5), sinon `not_applicable`; Z-up = X antero-posterieur, Y medio-lateral, Z supero-inferieur; une sequence de rotation renommee mais equivalente (axes, signes, ordre) est alignee avec l'ISB; une relation articulaire sans rotation ni translation = `No`.
+7. **Reponses multiples**: les details de construction, de rotation et de translation sont des cases a cocher (variables 0/1); l'orientation du thorax (Z-up / Other) et l'option humerale sont a choix unique. La question optionnelle de l'humerus reprend exactement les choix du formulaire (Option 1, Option 2, Other) et sa condition (ISB non suivi mais alternative decrite), sans regle ajoutee.
 
 ### Decisions en attente
-1. **Items a reponses multiples**: `*_translation_details` et `thorax_axes_orientation_details` sont traites comme a choix unique (la grille ne dit pas "Select all"). Confirmer.
-2. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
-3. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
-4. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
-5. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
-6. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
-7. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
-8. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
+1. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
+2. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
+3. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
+4. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
+5. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
+6. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
+7. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
 
 ### Actions a faire
 - [ ] Recuperer les 165 PDF de l'echantillon, nommes `cov<numero>.pdf`.
 - [ ] Envoyer `validation_study/human_extraction_rater_A.xlsx` et `_B.xlsx` aux deux evaluateurs (extraction en aveugle), puis consensus humain.
 - [x] Regles de codage integrees au prompt de l'agent (`CODING_RULES`).
-- [ ] Donner les memes regles (document ISB et `CODING_RULES`) aux deux evaluateurs humains, pour que l'accord mesure la meme grille.
+- [x] Gabarits des evaluateurs regeneres avec la grille du guide et un onglet `Coding rules` (meme tirage).
+- [ ] Envoyer aux deux evaluateurs le guide d'extraction avec les gabarits.
 - [ ] Mesurer la consommation sur 3-5 articles (`/extract-articles`).
 - [ ] Iterer sur developpement (39) puis reglage (29): `review-agreement --subset tuning`, 5 iterations maximum.
 - [ ] Geler la configuration (manifeste date: modele, version Claude Code, prompt, grille, regles). **Non implemente**: a ajouter.
