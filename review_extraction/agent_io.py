@@ -15,15 +15,16 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from .export import write_csv_summary, write_xlsx_summary
-from .form_schema import EXTRACTION_ITEMS, extraction_form_prompt
+from .form_schema import EXTRACTION_ITEMS, consistency_errors, extraction_form_prompt
 from .models import ArticleResult, Evidence, ExtractedAnswer, FinalAnswer, StudyMetadataField
-from .pdf_ingest import extract_pdf_text
-from .reconcile import REVIEW_THRESHOLD
+from .highlight import write_highlighted_pdf
+from .pdf_ingest import FigurePage, extract_pdf_text, find_figure_pages, render_pages
 from .study_metadata_schema import STUDY_METADATA_ITEMS, study_metadata_prompt
 from .variables import result_to_row, write_wide_csv
 from .targeted_context import build_extraction_context, build_study_metadata_context
@@ -66,10 +67,14 @@ def prepare(pdf: Path, work_dir: Path) -> Path:
     (folder / "context.txt").write_text(context.text, encoding="utf-8")
     (folder / "metadata_context.txt").write_text(metadata_context.text, encoding="utf-8")
     (folder / "pages.txt").write_text("\n\n".join(f"[PAGE {p.page}]\n{p.text}" for p in pages), encoding="utf-8")
+    figures = find_figure_pages(pdf)
+    render_pages(pdf, [f.page for f in figures], folder / "figures")
     form = "\n\n".join(
         [
             "# Part 1 - methodological parameters (read context.txt)",
             extraction_form_prompt(),
+            "# Figures (open the images, see below)",
+            figures_section(figures),
             "# Part 2 - study metadata (read metadata_context.txt)",
             study_metadata_prompt(),
             "# Output format",
@@ -85,6 +90,23 @@ def prepare(pdf: Path, work_dir: Path) -> Path:
     }
     (folder / "extraction.template.json").write_text(json.dumps(template, indent=1), encoding="utf-8")
     return folder
+
+
+def figures_section(figures: list[FigurePage]) -> str:
+    if not figures:
+        return "No figure caption was detected in this PDF."
+    lines = [
+        "Figures often show marker/landmark placement and segment or joint axes that the text does not describe.",
+        "Open every `high` priority image below with the Read tool before answering the segment and joint items; open",
+        "`low` priority images only if an item is still unresolved. When a figure is your evidence, quote verbatim text",
+        "printed on that page (preferably the caption), give that page number, and start `relevance` with `Figure:` followed",
+        "by what the figure shows (e.g. `Figure: humerus Y axis drawn from the epicondyle midpoint to the GH centre`).",
+        "",
+    ]
+    for fig in figures:
+        lines.append(f"- figures/page_{fig.page}.png (page {fig.page}, priority {fig.priority})")
+        lines += [f"  caption: {c}" for c in fig.captions]
+    return "\n".join(lines)
 
 
 def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | None, list[str]]:
@@ -115,6 +137,8 @@ def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | 
             errors.append(f"{answer.item_id}: not allowed {bad}; allowed: {sorted(allowed[answer.item_id])}")
     meta_ids = {m.field_id for m in metadata}
     errors += [f"Missing metadata field: {item.id}" for item in STUDY_METADATA_ITEMS if item.id not in meta_ids]
+    if not errors:
+        errors += consistency_errors({a.item_id: a.answer for a in answers})
     if errors:
         return None, errors
 
@@ -130,6 +154,9 @@ def finalize(pdf: Path, work_dir: Path, out_dir: Path) -> tuple[ArticleResult | 
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{result.article_id}.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    # Highlighted copy of the PDF (the source PDF is never modified).
+    (out_dir / "highlighted").mkdir(exist_ok=True)
+    write_highlighted_pdf(pdf, result, out_dir / "highlighted" / f"{result.article_id}.pdf")
     refresh_summaries(out_dir)
     return result, []
 
@@ -172,9 +199,9 @@ def _final_answer(answer: ExtractedAnswer, pages: dict[int, str], whole: str) ->
         final_confidence=answer.confidence,
         evidence=verified,
         rationale_short=answer.rationale_short + note,
-        review_required=answer.needs_human_review
-        or answer.confidence < REVIEW_THRESHOLD
-        or (not verified and not _is_default(answer.answer)),
+        # The agent's self-reported confidence is unstable between runs, so it is kept for information only
+        # and does not trigger review: only the agent's explicit request and unverified evidence do.
+        review_required=answer.needs_human_review or (not verified and not _is_default(answer.answer)),
     )
 
 
@@ -184,7 +211,12 @@ def _is_default(value: str | list[str]) -> bool:
 
 
 def _normalize(text: str) -> str:
-    text = text.replace("­", "").replace("-\n", "")
+    """Normalize PDF text and quotes before the verbatim check: ligatures (fi/fl), odd plus signs, dash variants."""
+    text = unicodedata.normalize("NFKC", text)
+    text = text.replace("\u00ad", "").replace("-\n", "")
+    text = text.replace("\u00fe", "+")  # font-mapped plus sign extracted as "thorn"
+    for dash in ("\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2212"):
+        text = text.replace(dash, "-")
     return re.sub(r"\s+", " ", text).strip().lower()
 
 

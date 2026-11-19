@@ -19,6 +19,40 @@ STUDY_METADATA_ITEMS = [
     StudyMetadataItem("journal", "Journal", "Text", "Journal or source title."),
     StudyMetadataItem("doi", "DOI", "DOI / NR", "Use NR if no DOI is reported."),
     StudyMetadataItem(
+        "first_author_affiliation",
+        "First author affiliation",
+        "Department / institution / country",
+        "From the author affiliation list (title page, footnote or end matter). If the first author has several "
+        "affiliations, give the first one. Keep the department or laboratory as printed. NR if not printed.",
+    ),
+    StudyMetadataItem(
+        "last_author_affiliation",
+        "Last author affiliation",
+        "Department / institution / country",
+        "Same rule for the last listed author (often the senior author). NR if not printed.",
+    ),
+    StudyMetadataItem(
+        "affiliation_institutions",
+        "All author institutions",
+        "Institution | institution | ...",
+        "Every distinct institution (university, hospital, research centre, company) of all authors, short official "
+        "name, separated by ' | ', in order of first appearance.",
+    ),
+    StudyMetadataItem(
+        "affiliation_departments",
+        "All author departments / laboratories",
+        "Department | department | ...",
+        "Every distinct department, school, faculty or laboratory of all authors, as printed, separated by ' | '. "
+        "NR if affiliations give no department.",
+    ),
+    StudyMetadataItem(
+        "affiliation_countries",
+        "All author countries",
+        "Country | country | ...",
+        "Every distinct country of all author affiliations, English short name (e.g. USA, UK, Netherlands), separated "
+        "by ' | ', in order of first appearance. Infer the country from the city or institution only when it is not printed.",
+    ),
+    StudyMetadataItem(
         "study_design_purpose",
         "Study design / study purpose",
         "Methodological / validation / experimental / clinical / normative / modelling / other",
@@ -34,7 +68,7 @@ STUDY_METADATA_ITEMS = [
     StudyMetadataItem("population_type", "Population type", "Healthy / pathological / cadaveric / model / mixed", "Use mixed when multiple population types are studied."),
     StudyMetadataItem("condition_studied", "Condition studied", "Healthy / rotator cuff tear / instability / stroke / OA / other / NR", "Use NR if not reported."),
     StudyMetadataItem("number_participants", "Number of participants", "n / NR", "Extract the participant count as reported."),
-    StudyMetadataItem("number_shoulders", "Number of shoulders", "n shoulders / NR", "Extract shoulder count when reported separately."),
+    StudyMetadataItem("number_shoulders", "Number of shoulders", "n shoulders / NR", "Number of shoulders actually measured: 1 per participant when only one side is measured; use NR only when it cannot be determined."),
     StudyMetadataItem("age", "Age", "Mean +/- SD / range / age group / NR", "Preserve the reported age format."),
     StudyMetadataItem("sex_distribution", "Sex distribution", "n female, n male / % / NR", "Preserve counts or percentages as reported."),
     StudyMetadataItem("side_studied", "Side studied", "Right / left / both / dominant / non-dominant / NR", "Use NR if side is not reported."),

@@ -1,5 +1,7 @@
 # Review Extraction
 
+[English version](README.en.md)
+
 MVP pour extraire automatiquement des paramètres méthodologiques d'articles PDF dans une revue systématique, avec validation par un second agent indépendant.
 
 **Deux modes**: pipeline API (decrit ci-dessous) ou agent Claude Code sur abonnement, sans API et sans screening (voir la section "Deux modes de fonctionnement").
@@ -55,7 +57,7 @@ Le LLM est un **sous-agent Claude Code** (`.claude/agents/review-extractor.md`) 
 2. **L'agent lit** `form.md` puis le contexte, et remplit `extraction.json`: pour chaque item une reponse parmi les identifiants permis (liste pour les items a reponses multiples), une confiance, une citation exacte avec numero de page, une courte justification et `needs_human_review`. Regles: ne jamais deviner (`unclear`, `no_method_or_reference`, `not_assessed`, `not_reported`), jamais de citation inventee. Les reponses negatives par defaut (`no`, `no_method_or_reference`, `not_assessed`, `not_applicable`, `not_reported`, `NR`) n'ont pas besoin de citation.
 3. **`finalize`** (Python): refuse le fichier tant qu'un item manque, est inconnu ou en double, ou qu'une reponse n'est pas dans la liste permise (l'agent doit corriger et relancer). Il verifie que chaque citation existe mot pour mot dans le PDF: une citation introuvable est retiree et l'item est marque `review_required`. Il ecrit `<article>.json` (screening vide, `validator_status=none`) puis regenere `summary.csv`, `summary.xlsx` et `binary.csv`.
 
-`review_required` vaut `true` si l'agent le demande, si la confiance est inferieure a 0,75, ou si une reponse non par defaut n'a aucune citation verifiee.
+`review_required` vaut `true` si l'agent le demande ou si une reponse non par defaut n'a aucune citation verifiee. La confiance de l'agent est conservee a titre indicatif mais ne declenche pas de revue: elle s'est montree instable d'un passage a l'autre sur un meme article.
 
 ### Lancer l'extraction
 1. Ouvrir Claude Code connecte a l'abonnement (app Claude Code, ou `claude` puis `/login` dans un terminal) et ouvrir la session **dans le dossier du depot** (l'agent et la commande sont charges au demarrage).
@@ -88,31 +90,92 @@ Le pipeline Python complet (avec screening, validateur et escalade) peut aussi u
 
 ## Decisions a prendre et actions a faire
 
+### Decisions prises (regles de codage)
+Guide "ISB shoulder kinematics - Data extraction guide" (consignes de reference), document "ISB data extraction examples for reviewers" et reponses de Florent, integres dans `CODING_RULES` (`review_extraction/form_schema.py`), affiche a l'extracteur avant la grille:
+1. **Declaration ISB globale sans methode**: "ISB recommendations explicitly stated, but no method described" (`isb_explicit_no_method`). Un enonce general ("ISB recommendations were followed") compte comme declaration explicite pour tous les items de segments et d'articulations, a coder item par item sans inferer les details manquants.
+2. **`<segment>_used`**: `yes` des qu'un systeme d'axes est construit pour le segment, pas avant (un capteur seul sur le sternum, sans axes, donne `no`).
+3. **`number_shoulders`**: nombre d'epaules reellement mesurees (1 par participant si un seul cote); `NR` seulement si indeterminable.
+4. **Rotation alternative (NSAR) / comparaison de methodes**: si ISB fait partie des methodes testees, coder ISB (les donnees peuvent etre exprimees selon l'ISB).
+5. **Nouvelle option `i_dont_know`** (items de segments et d'articulations): contradiction non resolue (ex. texte contre figure), jamais pour une simple absence de description; `not_assessed` quand rotations ou translations ne sont pas analysees. Les categories des items a choix multiples peuvent se chevaucher.
+6. **Guide d'extraction**: categories avec leur libelle exact (1-8, plus `not_assessed` pour les articulations); une erreur typographique evidente n'est pas un ecart; une modification intentionnelle est un ecart (categorie 2); les details optionnels ne sont remplis que si une alternative ou un ecart est directement decrit (categorie 2 ou 5), sinon `not_applicable`; Z-up = X antero-posterieur, Y medio-lateral, Z supero-inferieur; une sequence de rotation renommee mais equivalente (axes, signes, ordre) est alignee avec l'ISB; une relation articulaire sans rotation ni translation = `No`.
+7. **Reponses multiples**: les details de construction, de rotation et de translation sont des cases a cocher (variables 0/1); l'orientation du thorax (Z-up / Other) et l'option humerale sont a choix unique. La question optionnelle de l'humerus reprend exactement les choix du formulaire (Option 1, Option 2, Other) et sa condition (ISB non suivi mais alternative decrite), sans regle ajoutee.
+
 ### Decisions en attente
-1. **Regles de codage** (a trancher, par exemple par Florent, avant le gel du prompt):
-   - declaration ISB globale sans methode detaillee: `isb_explicit_no_method` ou `no_method_or_reference`?
-   - un seul capteur sur le sternum: le thorax est-il "utilise"?
-   - `number_shoulders` quand un seul bras est mesure (1, `NR`, autre?);
-   - rotation axiale alternative (NSAR) a cote de celle de l'ISB: quel codage dans les details de rotation?
-2. **Items a reponses multiples**: `*_translation_details` et `thorax_axes_orientation_details` sont traites comme a choix unique (la grille ne dit pas "Select all"). Confirmer.
-3. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
-4. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
-5. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
-6. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
-7. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
-8. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
-9. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
+1. **Regle d'aptitude d'un domaine**: le protocole ne la precise pas; implementation actuelle = toutes les variables evaluables du domaine passent kappa >= 0,80 et accord >= 90 %. Variables binaires rares = risque d'echec. Confirmer ou assouplir.
+2. **IC du kappa**: bootstrap percentile (1000 reps) au lieu de Donner et Eliasziw (dichotomique seulement). Confirmer la formulation dans la methode.
+3. **Taille et strates**: echantillon tire = 165/1650 (39/29/97) au lieu de 170 (40/30/100), strate `year_bin` seule. Confirmer, ou ajouter une strate (population, methode de mesure).
+4. **Criteres de reglage "prespecifies"**: definir ce qui arrete l'iteration (par ex. seuils par domaine sur le jeu de reglage) avant la premiere iteration; maximum 5.
+5. **Configuration a geler**: modele (`claude-sonnet-5-5` ou autre), effort de raisonnement, abonnement ou API pour le corpus final.
+6. **Consensus humain**: qui est le troisieme evaluateur, procedure de calibration des deux evaluateurs.
+7. **Visibilite du depot**: public; `validation_study/validation_sample.csv` publie la liste du jeu de test. Passer en prive ou retirer ce fichier si le test doit rester en aveugle.
 
 ### Actions a faire
-- [ ] Recuperer les 165 PDF de l'echantillon, nommes `cov<numero>.pdf`.
-- [ ] Envoyer `validation_study/human_extraction_rater_A.xlsx` et `_B.xlsx` aux deux evaluateurs (extraction en aveugle), puis consensus humain.
-- [ ] Appliquer les decisions 1 et 2 au prompt de l'agent et au guide des evaluateurs.
-- [ ] Mesurer la consommation sur 3-5 articles (`/extract-articles`).
-- [ ] Iterer sur developpement (39) puis reglage (29): `review-agreement --subset tuning`, 5 iterations maximum.
-- [ ] Geler la configuration (manifeste date: modele, version Claude Code, prompt, grille, regles). **Non implemente**: a ajouter.
-- [ ] Evaluer le jeu de test (97) une seule fois: `review-agreement --subset test --final-evaluation`.
+- [x] Recuperer les 165 PDF de l'echantillon (`review-validation match`: 165/165 associes, titres verifies dans le PDF).
+- [x] Envoyer les gabarits et le guide d'extraction aux deux evaluateurs.
+- [x] Regles de codage integrees au prompt de l'agent (`CODING_RULES`).
+- [x] Gabarits des evaluateurs regeneres avec la grille du guide et un onglet `Coding rules` (meme tirage).
+- [x] Lecture des figures, affiliations des auteurs et PDF surlignes.
+- [ ] Extraire les 165 articles une seule fois avec la configuration gelee (`/extract-articles pdf_validation outputs_validation`).
+- [ ] Exporter `ai_extraction.xlsx` (`review-validation export`) et le comparer au consensus humain (`review-agreement`).
+- [ ] Valider `validation_study/journal_classification.csv`.
 - [ ] Extraire le corpus restant; les domaines non aptes restent en verification humaine.
 - [ ] Optionnel: mode `--extraction-only` pour le pipeline API (aujourd'hui le screening y est toujours execute); tester `--backend anthropic` avec une vraie cle.
+
+## Extraction de l'echantillon de validation (165 articles)
+
+Les 165 articles de l'echantillon ont deja ete envoyes aux evaluateurs humains. Il n'y a plus d'iteration avec eux:
+la configuration actuelle (modele, grille, regles du guide, prompt) est gelee et les 165 articles sont extraits une
+seule fois, sur plusieurs sessions si les limites de l'abonnement l'imposent.
+
+1. Associer les PDF aux identifiants de l'echantillon (les PDF sources ne sont ni renommes ni modifies):
+
+```bash
+review-validation match --pdf-dir "<dossier des PDF inclus>"
+```
+
+   Le titre Covidence est compare au nom du fichier (titre tronque), puis l'annee et le premier auteur departagent les
+   doublons; sinon le titre est cherche dans le texte des premieres pages. Les copies vont dans `pdf_validation/<article_id>.pdf`
+   (local, non versionne) et le rapport dans `validation_study/pdf_matching.csv`.
+
+2. Extraire dans Claude Code (reprend automatiquement la ou il s'est arrete):
+
+```text
+/extract-articles pdf_validation outputs_validation
+```
+
+   ou, sans occuper une conversation, en lot depuis un terminal (Claude Code sans interface, abonnement, 3 en
+   parallele, outils limites a Read/Write et aux commandes `agent_io`; journaux dans `outputs_validation/logs/`):
+
+```bash
+bash scripts/run_validation_batch.sh pdf_validation outputs_validation 3
+```
+
+3. Exporter le classeur de l'IA:
+
+```bash
+review-validation export
+```
+
+   `outputs_validation/ai_extraction.xlsx` contient:
+   - `Extraction`: meme disposition que les gabarits des evaluateurs (`article_id`, `study_label`, variables), donc
+     `review-agreement --a outputs_validation/ai_extraction.xlsx --b <consensus humain>.xlsx` compare directement;
+   - `To review`: reponses signalees, avec citation, page et justification;
+   - `Evidence`: toutes les citations (celles tirees d'une figure ont une pertinence qui commence par `Figure:`);
+   - `Study metadata`: donnees bibliographiques de Covidence, classe de la revue, metadonnees et affiliations extraites.
+
+Ce que fait l'agent en plus du texte:
+- **Figures**: `prepare` detecte les pages avec une legende de figure (ou une grande image ou un dessin vectoriel) et
+  les rend en PNG; les figures dont la legende evoque axes, reperes, marqueurs ou montage sont prioritaires et l'agent
+  doit les ouvrir. Une preuve tiree d'une figure cite le texte imprime sur la page (legende), ce qui reste verifiable.
+- **Affiliations**: affiliation du premier et du dernier auteur (departement / institution / pays), toutes les
+  institutions, tous les departements et tous les pays des auteurs, lus dans le PDF (pas de service externe).
+- **PDF surlignes**: `finalize` ecrit une copie `outputs_validation/highlighted/<article_id>.pdf` ou chaque citation
+  est surlignee (couleur par domaine, rouge si a revoir) avec une note `item: reponse`. Le PDF source n'est pas modifie.
+
+Classe des revues: `validation_study/journal_classification.csv` propose une classe principale (et eventuellement
+secondaire) pour chacune des 377 revues du corpus: biomecanique et science du mouvement, clinique, ingenierie et
+capteurs, informatique/vision/IA, ergonomie, science du sport, multidisciplinaire, autre. Proposition a valider par
+l'equipe avant l'analyse par lectorat.
 
 ## Lecture ciblee pour reduire les tokens
 
@@ -184,7 +247,7 @@ Notes:
 1. **Echantillon a priori** (avant tout travail sur le prompt): echantillon aleatoire stratifie de 10 %, scinde en developpement / reglage / test (40/30/100 mis a l'echelle), avec gabarits Excel vierges pour deux evaluateurs humains en aveugle:
 
 ```powershell
-review-sample .\pdf_input --out .alidation_study --strata-cols year_bin
+review-sample .\pdf_input --out .\validation_study --strata-cols year_bin
 ```
 
    Sorties: `validation_sample.csv`, `sample_manifest.json` (graine, tailles, hash de la population), `human_extraction_rater_A.xlsx` et `_B.xlsx` (listes deroulantes + onglet `Codebook`). Un echantillon existant n'est jamais retire de nouveau sans `--force`. `--results <dossier JSON>` permet de stratifier aussi sur les metadonnees (ex. `--strata-cols year_bin,population_type`).
@@ -206,9 +269,9 @@ review-binary --results .\outputs_claude_agent
 3. **Accord** (% exact + IC de Wilson, kappa de Cohen non pondere + IC 95 % bootstrap, seuils kappa >= 0,80 et accord >= 90 %, verdict par domaine):
 
 ```powershell
-review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset tuning --out .greement_tuning
-review-agreement --a rater_A.xlsx --b rater_B.xlsx --label human_vs_human --out .greement_human
-review-agreement --a human_consensus.xlsx --b .\outputs_claude_agentinary.csv --sample .alidation_studyalidation_sample.csv --subset test --final-evaluation --out .greement_test
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agent\binary.csv --sample .\validation_study\validation_sample.csv --subset tuning --out .\agreement_tuning
+review-agreement --a rater_A.xlsx --b rater_B.xlsx --label human_vs_human --out .\agreement_human
+review-agreement --a human_consensus.xlsx --b .\outputs_claude_agent\binary.csv --sample .\validation_study\validation_sample.csv --subset test --final-evaluation --out .\agreement_test
 ```
 
    Le sous-ensemble `test` exige `--final-evaluation` et ne peut etre evalue qu'une fois (fichier verrou). Un domaine est declare apte seulement si toutes ses variables evaluables passent les deux seuils.

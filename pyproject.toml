@@ -39,6 +39,7 @@ review-agent-io = "review_extraction.agent_io:main"
 review-agreement = "review_extraction.agreement:main"
 review-sample = "review_extraction.sampling:main"
 review-binary = "review_extraction.variables:main"
+review-validation = "review_extraction.validation_run:main"
 
 [tool.setuptools.packages.find]
 include = ["review_extraction*"]

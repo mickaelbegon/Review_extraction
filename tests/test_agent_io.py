@@ -55,6 +55,22 @@ class AgentIoTests(unittest.TestCase):
         result, _ = finalize(self.pdf, self.tmp / "work", self.tmp / "out")
         self.assertFalse(result.answers[0].review_required)
 
+    def test_quote_matches_pdf_ligatures_and_dashes(self) -> None:
+        from review_extraction.agent_io import _normalize
+
+        self.assertEqual(_normalize("was deﬁned (þZ) superior–inferior"), _normalize("was defined (+Z) superior-inferior"))
+
+    def test_low_confidence_alone_does_not_flag_review(self) -> None:
+        self._write(lambda a: a[0].update(confidence=0.3))
+        result, _ = finalize(self.pdf, self.tmp / "work", self.tmp / "out")
+        self.assertFalse(result.answers[0].review_required)
+        self.assertEqual(result.answers[0].final_confidence, 0.3)
+
+    def test_agent_request_flags_review(self) -> None:
+        self._write(lambda a: a[0].update(needs_human_review=True))
+        result, _ = finalize(self.pdf, self.tmp / "work", self.tmp / "out")
+        self.assertTrue(result.answers[0].review_required)
+
     def test_fabricated_quote_flags_review(self) -> None:
         self._write(lambda a: a[0].update(answer="skin_markers_3d_optical", evidence=[{"page": 1, "quote": "never written", "relevance": "x"}]))
         result, _ = finalize(self.pdf, self.tmp / "work", self.tmp / "out")
